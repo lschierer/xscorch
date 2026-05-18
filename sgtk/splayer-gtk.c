@@ -155,26 +155,26 @@ void sc_player_setup_gtk(sc_window_gtk *w) {
    g_signal_connect(G_OBJECT(dialog), "apply",
                     (GCallback)_sc_player_setup_apply_gtk, &pl);
 
-   tbox = gtk_table_new(2, 2, FALSE);
-   gtk_table_attach(GTK_TABLE(dialog->grid), tbox, 0, 3, 0, 1, GTK_FILL, GTK_FILL | GTK_EXPAND, 2, 2);
+   tbox = gtk_grid_new();
+   gtk_grid_attach(GTK_GRID(dialog->grid), tbox, 0, 0, 3-0, 1-0);
 
    sc_help_text(help1, sizeof(help1), "Number of Players");
    widget = tooltip(w, help1, sc_label_new("Number of players:"));
-   gtk_table_attach(GTK_TABLE(tbox), widget, 0, 1, 0, 1, GTK_FILL, GTK_FILL, 2, 2);
-   gtk_misc_set_alignment(GTK_MISC(widget), 0, 0.5);
+   gtk_grid_attach(GTK_GRID(tbox), widget, 0, 0, 1-0, 1-0);
+   gtk_widget_set_halign(widget, GTK_ALIGN_START); gtk_widget_set_valign(widget, GTK_ALIGN_CENTER);
    widget = tooltip(w, help1, sc_link_spin_new(&pl.numplayers, pl.minplayers, SC_MAX_PLAYERS, 1));
    g_signal_connect(G_OBJECT(widget), "modified",
                     (GCallback)_sc_player_sensitize_gtk, &pl);
-   gtk_table_attach(GTK_TABLE(tbox), widget, 1, 2, 0, 1, GTK_FILL | GTK_EXPAND, GTK_FILL | GTK_EXPAND, 2, 2);
+   gtk_grid_attach(GTK_GRID(tbox), widget, 1, 0, 2-1, 1-0);
 
    sc_help_text(help1, sizeof(help1), "Number of Rounds");
    widget = tooltip(w, help1, sc_label_new("Number of rounds:"));
-   gtk_table_attach(GTK_TABLE(tbox), widget, 0, 1, 1, 2, GTK_FILL, GTK_FILL, 2, 2);
-   gtk_misc_set_alignment(GTK_MISC(widget), 0, 0.5);
+   gtk_grid_attach(GTK_GRID(tbox), widget, 0, 1, 1-0, 2-1);
+   gtk_widget_set_halign(widget, GTK_ALIGN_START); gtk_widget_set_valign(widget, GTK_ALIGN_CENTER);
    widget = tooltip(w, help1, sc_link_spin_new(&pl.numrounds, 1, SC_MAX_ROUNDS, 1));
    g_signal_connect(G_OBJECT(widget), "modified",
                     (GCallback)_sc_player_sensitize_gtk, &pl);
-   gtk_table_attach(GTK_TABLE(tbox), widget, 1, 2, 1, 2, GTK_FILL | GTK_EXPAND, GTK_FILL | GTK_EXPAND, 2, 2);
+   gtk_grid_attach(GTK_GRID(tbox), widget, 1, 1, 2-1, 2-1);
 
    sc_help_text(help1, sizeof(help1), "AI Type");
    sc_help_text(help2, sizeof(help1), "Player Name");

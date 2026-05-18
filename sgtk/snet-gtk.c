@@ -110,7 +110,7 @@ void sc_chat_window_gtk(sc_window_gtk *w) {
 
    view = gtk_scrolled_window_new(NULL, NULL);
    gtk_widget_set_usize(view, 550, 100);
-   gtk_table_attach(GTK_TABLE(dialog->grid), view, 0, 2, 0, 1, GTK_FILL | GTK_EXPAND, GTK_FILL | GTK_EXPAND, 2, 2);
+   gtk_grid_attach(GTK_GRID(dialog->grid), view, 0, 0, 2-0, 1-0);
 
    widget = gtk_text_new(NULL, NULL);
    gtk_text_set_editable(GTK_TEXT(widget), FALSE);
@@ -121,13 +121,13 @@ void sc_chat_window_gtk(sc_window_gtk *w) {
    gtk_widget_set_usize(widget, 450, 0);
    g_signal_connect(G_OBJECT(widget), "key-press-event",
                     (GCallback)_sc_chat_send_key_gtk, &config);
-   gtk_table_attach(GTK_TABLE(dialog->grid), widget, 0, 1, 1, 2, GTK_FILL | GTK_EXPAND, GTK_FILL, 2, 2);
+   gtk_grid_attach(GTK_GRID(dialog->grid), widget, 0, 1, 1-0, 2-1);
    config.entry = widget;
 
    widget = gtk_button_new_with_label(" Send ");
    g_signal_connect(G_OBJECT(widget), "clicked",
                     (GCallback)_sc_chat_send_gtk, &config);
-   gtk_table_attach(GTK_TABLE(dialog->grid), widget, 1, 2, 1, 2, GTK_FILL, GTK_FILL, 2, 2);
+   gtk_grid_attach(GTK_GRID(dialog->grid), widget, 1, 1, 2-1, 2-1);
 
    sc_dialog_run(dialog);
 

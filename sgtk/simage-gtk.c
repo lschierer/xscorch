@@ -1,19 +1,19 @@
 /* $Header: /fridge/cvs/xscorch/sgtk/simage-gtk.c,v 1.7 2009-04-26 17:39:48 jacob Exp $ */
 /*
-   
+
    xscorch - simage-gtk.c     Copyright(c) 2000-2003 Justin David Smith
    justins(at)chaos2.org      http://chaos2.org/
-    
+
    GTK interface to image drawing
-    
 
-   This program is free software; you can redistribute it and/or modify 
-   it under the terms of the GNU General Public License as published by 
-   the Free Software Foundation, version 2 of the License ONLY. 
 
-   This program is distributed in the hope that it will be useful, 
+   This program is free software; you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation, version 2 of the License ONLY.
+
+   This program is distributed in the hope that it will be useful,
    but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU 
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
    General Public License for more details.
 
    You should have received a copy of the GNU General Public License along
@@ -26,39 +26,32 @@
 
 
 
-inline gint sc_pixmap_width_gtk(GdkPixmap *pix) {
+gint sc_pixmap_width_gtk(cairo_surface_t *surf) {
 
-   gint width;
-   
-   width = 0;
-   gdk_drawable_get_size(pix, &width, NULL);
-   return(width);
-
-}
-
- 
- 
-inline gint sc_pixmap_height_gtk(GdkPixmap *pix) {
-
-   gint height;
-   
-   height = 0;
-   gdk_drawable_get_size(pix, NULL, &height);
-   return(height);
+   if(surf == NULL) return(0);
+   return(cairo_image_surface_get_width(surf));
 
 }
 
 
 
-void sc_pixmap_copy_gtk(GdkPixmap *dest, GdkGC *gc, GdkPixmap *src, GdkBitmap *mask, int dx, int dy) {
+gint sc_pixmap_height_gtk(cairo_surface_t *surf) {
 
-   gdk_gc_set_clip_origin(gc, dx, dy);
-   gdk_gc_set_clip_mask(gc, mask);
-   gdk_draw_drawable(dest, gc, src,
-                     0, 0,
-                     dx, dy,
-                     sc_pixmap_width_gtk(src),
-                     sc_pixmap_height_gtk(src));
-   gdk_gc_set_clip_mask(gc, NULL);
-   
+   if(surf == NULL) return(0);
+   return(cairo_image_surface_get_height(surf));
+
+}
+
+
+
+void sc_pixmap_copy_gtk(cairo_surface_t *dest, cairo_t *cr, cairo_surface_t *src, int dx, int dy) {
+
+   /* If cr is the context for dest, just paint src at (dx, dy).
+      The source surface may have an alpha channel (logo transparency). */
+   (void)dest;  /* cr is already a context for dest */
+   cairo_save(cr);
+   cairo_set_source_surface(cr, src, dx, dy);
+   cairo_paint(cr);
+   cairo_restore(cr);
+
 }

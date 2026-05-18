@@ -21,8 +21,6 @@
    51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
 
 */
-#define  __ALLOW_DEPRECATED_GDK__
-
 /* Start with system includes */
 #include <assert.h>
 #include <stdio.h>
@@ -95,13 +93,9 @@ void sc_window_timer_disable(sc_window *w_) {
 
 
 
-static void _sc_screen_expose_gtk(__libj_unused GtkWidget *widget, __libj_unused GdkEvent *event, gpointer data) {
+static gboolean _sc_screen_expose_gtk(__libj_unused GtkWidget *widget, __libj_unused cairo_t *cr, gpointer data) {
 
    sc_window_gtk *w = data;
-
-   #if SC_GTK_DEBUG_GTK && __debugging_macros
-      SC_DEBUG_ENTER_();
-   #endif /* debug */
 
    /* Start game if this is our first drawing */
    if(!w->exposed && w->ready) {
@@ -109,9 +103,7 @@ static void _sc_screen_expose_gtk(__libj_unused GtkWidget *widget, __libj_unused
       w->exposed = TRUE;
    }
 
-   #if SC_GTK_DEBUG_GTK && __debugging_macros
-      SC_DEBUG_EXIT_();
-   #endif /* debug */
+   return(FALSE);
 
 }
 
@@ -150,10 +142,10 @@ static gboolean _sc_window_keypress_gtk(GtkWidget *widget, GdkEventKey *key, gpo
    if(w->state < 4 && w->c->insanity &&
      !(SC_STATE_IS_ENABLED(w->c->game) &&
      !SC_STATE_IS_PAUSE(w->c->game))) {
-      if(w->state == 0 && key->keyval == GDK_b)       ++w->state;
-      else if(w->state == 1 && key->keyval == GDK_o)  ++w->state;
-      else if(w->state == 2 && key->keyval == GDK_o)  ++w->state;
-      else if(w->state == 3 && key->keyval == GDK_m)  ++w->state;
+      if(w->state == 0 && key->keyval == GDK_KEY_b)       ++w->state;
+      else if(w->state == 1 && key->keyval == GDK_KEY_o)  ++w->state;
+      else if(w->state == 2 && key->keyval == GDK_KEY_o)  ++w->state;
+      else if(w->state == 3 && key->keyval == GDK_KEY_m)  ++w->state;
       else w->state = 0;
       if(w->state >= 4) {
          sc_status_message((sc_window *)w, "BOOM!  Heh heh heh...");
@@ -170,125 +162,125 @@ static gboolean _sc_window_keypress_gtk(GtkWidget *widget, GdkEventKey *key, gpo
    if(SC_STATE_IS_ENABLED(w->c->game) && !SC_STATE_IS_PAUSE(w->c->game) && !controlled) {
       /* Make sure the current player is human */
       if(curplayer != NULL && curplayer->aitype == SC_AI_HUMAN) switch(key->keyval) {
-         case GDK_Tab:
+         case GDK_KEY_Tab:
             sc_player_advance_weapon(w->c, curplayer, shifted ? -1 : 1);
             g_signal_stop_emission_by_name(G_OBJECT(widget), "key_press_event");
             return(TRUE);
-         case GDK_Up:
-         case GDK_KP_Up:
-         case GDK_Page_Up:
+         case GDK_KEY_Up:
+         case GDK_KEY_KP_Up:
+         case GDK_KEY_Page_Up:
             sc_player_advance_power(w->c, curplayer,
                                     shifted ? SC_PLAYER_POWER_STEP : SC_PLAYER_POWER_BIGSTEP);
             g_signal_stop_emission_by_name(G_OBJECT(widget), "key_press_event");
             return(TRUE);
-         case GDK_Down:
-         case GDK_KP_Down:
-         case GDK_Page_Down:
+         case GDK_KEY_Down:
+         case GDK_KEY_KP_Down:
+         case GDK_KEY_Page_Down:
             sc_player_advance_power(w->c, curplayer, 
                                     -(shifted ? SC_PLAYER_POWER_STEP : SC_PLAYER_POWER_BIGSTEP));
             g_signal_stop_emission_by_name(G_OBJECT(widget), "key_press_event");
             return(TRUE);
-         case GDK_Right:
-         case GDK_KP_Right:
+         case GDK_KEY_Right:
+         case GDK_KEY_KP_Right:
             sc_player_advance_turret(w->c, curplayer,
                                      -(shifted ? SC_PLAYER_TURRET_STEP : SC_PLAYER_TURRET_BIGSTEP));
             g_signal_stop_emission_by_name(G_OBJECT(widget), "key_press_event");
             return(TRUE);
-         case GDK_Left:
-         case GDK_KP_Left:
+         case GDK_KEY_Left:
+         case GDK_KEY_KP_Left:
             sc_player_advance_turret(w->c, curplayer,
                                      shifted ? SC_PLAYER_TURRET_STEP : SC_PLAYER_TURRET_BIGSTEP);
             g_signal_stop_emission_by_name(G_OBJECT(widget), "key_press_event");
             return(TRUE);
-         case GDK_B:
-         case GDK_b:
+         case GDK_KEY_B:
+         case GDK_KEY_b:
             sc_player_activate_battery(w->c, curplayer);
             return(TRUE);
-         case GDK_E:
-         case GDK_e:
+         case GDK_KEY_E:
+         case GDK_KEY_e:
             sc_player_activate_shield(w->c, curplayer);
             return(TRUE);
-         case GDK_F:
-         case GDK_f:
+         case GDK_KEY_F:
+         case GDK_KEY_f:
             sc_window_tank_move_gtk(w, curplayer);
             sc_game_pause(w->c, w->c->game);
             return(TRUE);
-         case GDK_R:
-         case GDK_r:
+         case GDK_KEY_R:
+         case GDK_KEY_r:
             sc_window_paint((sc_window *)w, 0, 0,
                             w->c->fieldwidth, w->c->fieldheight,
                             SC_PAINT_EVERYTHING);
             return(TRUE);
-         case GDK_S:
-         case GDK_s:
+         case GDK_KEY_S:
+         case GDK_KEY_s:
             sc_player_advance_shield(w->c, curplayer, SC_PLAYER_SHIELD_DEFAULTS);
             return(TRUE);
-         case GDK_T:
-         case GDK_t:
+         case GDK_KEY_T:
+         case GDK_KEY_t:
             sc_player_toggle_contact_triggers(w->c, curplayer);
             return(TRUE);
-         case GDK_1:
-         case GDK_KP_1:
+         case GDK_KEY_1:
+         case GDK_KEY_KP_1:
             if(w->c->numplayers < 1) return(FALSE);
             sc_window_tank_info_gtk(w, w->c->players[0]);
             sc_game_pause(w->c, w->c->game);
             return(TRUE);
-         case GDK_2:
-         case GDK_KP_2:
+         case GDK_KEY_2:
+         case GDK_KEY_KP_2:
             if(w->c->numplayers < 2) return(FALSE);
             sc_window_tank_info_gtk(w, w->c->players[1]);
             sc_game_pause(w->c, w->c->game);
             return(TRUE);
-         case GDK_3:
-         case GDK_KP_3:
+         case GDK_KEY_3:
+         case GDK_KEY_KP_3:
             if(w->c->numplayers < 3) return(FALSE);
             sc_window_tank_info_gtk(w, w->c->players[2]);
             sc_game_pause(w->c, w->c->game);
             return(TRUE);
-         case GDK_4:
-         case GDK_KP_4:
+         case GDK_KEY_4:
+         case GDK_KEY_KP_4:
             if(w->c->numplayers < 4) return(FALSE);
             sc_window_tank_info_gtk(w, w->c->players[3]);
             sc_game_pause(w->c, w->c->game);
             return(TRUE);
-         case GDK_5:
-         case GDK_KP_5:
+         case GDK_KEY_5:
+         case GDK_KEY_KP_5:
             if(w->c->numplayers < 5) return(FALSE);
             sc_window_tank_info_gtk(w, w->c->players[4]);
             sc_game_pause(w->c, w->c->game);
             return(TRUE);
-         case GDK_6:
-         case GDK_KP_6:
+         case GDK_KEY_6:
+         case GDK_KEY_KP_6:
             if(w->c->numplayers < 6) return(FALSE);
             sc_window_tank_info_gtk(w, w->c->players[5]);
             sc_game_pause(w->c, w->c->game);
             return(TRUE);
-         case GDK_7:
-         case GDK_KP_7:
+         case GDK_KEY_7:
+         case GDK_KEY_KP_7:
             if(w->c->numplayers < 7) return(FALSE);
             sc_window_tank_info_gtk(w, w->c->players[6]);
             sc_game_pause(w->c, w->c->game);
             return(TRUE);
-         case GDK_8:
-         case GDK_KP_8:
+         case GDK_KEY_8:
+         case GDK_KEY_KP_8:
             if(w->c->numplayers < 8) return(FALSE);
             sc_window_tank_info_gtk(w, w->c->players[7]);
             sc_game_pause(w->c, w->c->game);
             return(TRUE);
-         case GDK_9:
-         case GDK_KP_9:
+         case GDK_KEY_9:
+         case GDK_KEY_KP_9:
             if(w->c->numplayers < 9) return(FALSE);
             sc_window_tank_info_gtk(w, w->c->players[8]);
             sc_game_pause(w->c, w->c->game);
             return(TRUE);
-         case GDK_0:
-         case GDK_KP_0:
+         case GDK_KEY_0:
+         case GDK_KEY_KP_0:
             if(w->c->numplayers < 10) return(FALSE);
             sc_window_tank_info_gtk(w, w->c->players[9]);
             sc_game_pause(w->c, w->c->game);
             return(TRUE);
-         case GDK_Return:
-         case GDK_KP_Enter:
+         case GDK_KEY_Return:
+         case GDK_KEY_KP_Enter:
             sc_status_message((sc_window *)w, "");
             sc_game_set_state_asap(w->c->game, SC_STATE_TURN_PL_DONE);
             g_signal_stop_emission_by_name(G_OBJECT(widget), "key_press_event");
@@ -305,22 +297,27 @@ static gboolean _sc_window_keypress_gtk(GtkWidget *widget, GdkEventKey *key, gpo
 static bool _sc_load_images(sc_window_gtk *w) {
 
    const char *filename;
+   GdkPixbuf *logo_pixbuf;
+   GError *err = NULL;
 
-   filename = SC_GLOBAL_DIR "/" SC_IMAGE_DIR "/xscorch-logo.xpm";
-   w->logo = gdk_pixmap_colormap_create_from_xpm(w->app->window, NULL,
-                                                 &w->logo_m, NULL,
-                                                 filename);
-   if(w->logo == NULL) {
-      fprintf(stderr, "Cannot load \"%s\", aborting.\n", filename);
+   filename = SC_GLOBAL_DIR "/" SC_IMAGE_DIR "/xscorch-logo.png";
+   logo_pixbuf = gdk_pixbuf_new_from_file(filename, &err);
+   if(logo_pixbuf == NULL) {
+      fprintf(stderr, "Cannot load \"%s\": %s\n", filename,
+              err ? err->message : "unknown error");
+      if(err) g_error_free(err);
       return(false);
    }
+   w->logo = gdk_cairo_surface_create_from_pixbuf(logo_pixbuf, 1, NULL);
+   g_object_unref(logo_pixbuf);
 
-   filename = SC_GLOBAL_DIR "/" SC_IMAGE_DIR "/xscorch-icon.xpm";
-   w->icon = gdk_pixmap_colormap_create_from_xpm(w->app->window, NULL,
-                                                 &w->icon_m, NULL,
-                                                 filename);
-   if(w->icon == NULL) {
-      fprintf(stderr, "Cannot load \"%s\", aborting.\n", filename);
+   err = NULL;
+   filename = SC_GLOBAL_DIR "/" SC_IMAGE_DIR "/xscorch-icon.png";
+   w->icon_pixbuf = gdk_pixbuf_new_from_file(filename, &err);
+   if(w->icon_pixbuf == NULL) {
+      fprintf(stderr, "Cannot load \"%s\": %s\n", filename,
+              err ? err->message : "unknown error");
+      if(err) g_error_free(err);
       return(false);
    }
 
@@ -334,7 +331,6 @@ sc_window *sc_window_new(sc_config *c, __libj_unused int argc, __libj_unused cha
 
    sc_window_gtk *w;
    GtkWidget *cont;
-   GdkColor black;
    gint   fake_argc = 1;
    gchar* fake_argv[] = { "xscorch", NULL };
    char **fake_argv_p;
@@ -365,7 +361,7 @@ sc_window *sc_window_new(sc_config *c, __libj_unused int argc, __libj_unused cha
    gtk_window_set_resizable(GTK_WINDOW(w->app), FALSE);
 
    /* Create the main (vertical) container */
-   cont = gtk_vbox_new(FALSE, 0);
+   cont = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
    gtk_container_set_border_width(GTK_CONTAINER(cont), 1);
    gtk_container_add(GTK_CONTAINER(w->app), cont);
 
@@ -384,7 +380,7 @@ sc_window *sc_window_new(sc_config *c, __libj_unused int argc, __libj_unused cha
    gtk_box_pack_start(GTK_BOX(cont), w->border, TRUE, TRUE, 0);*/
    w->screen = sc_display_new(w->c->fieldwidth, w->c->fieldheight);
    g_signal_connect(G_OBJECT(sc_display_get_drawbuf(SC_DISPLAY(w->screen))),
-                    "expose_event", (GCallback)_sc_screen_expose_gtk, w);
+                    "draw", (GCallback)_sc_screen_expose_gtk, w);
    /*gtk_fixed_put(GTK_FIXED(w->border), w->screen, 2, 2);*/
    gtk_box_pack_start(GTK_BOX(cont), w->screen, TRUE, TRUE, 0);
 
@@ -395,19 +391,15 @@ sc_window *sc_window_new(sc_config *c, __libj_unused int argc, __libj_unused cha
    /* Show everything */
    gtk_widget_show_all(w->app);
 
-   /* Setup display background color */
-   gdk_color_black(gtk_widget_get_colormap(w->screen), &black);
-   gdk_window_set_background(w->screen->window, &black);
-
    /* Setup the offscreen land buffer */
-   w->landbuffer = gdk_pixmap_new(w->app->window, w->c->fieldwidth, w->c->fieldheight, -1);
+   w->landbuffer = cairo_image_surface_create(CAIRO_FORMAT_RGB24, w->c->fieldwidth, w->c->fieldheight);
 
    /* Setup explosion cache */
    w->explcache = sc_expl_cache_new_gtk();
 
    /* Load the images */
    if(!_sc_load_images(w)) return(NULL);
-   gdk_window_set_icon(w->app->window, NULL, w->icon, w->icon_m);
+   gtk_window_set_icon(GTK_WINDOW(w->app), w->icon_pixbuf);
    w->ready = TRUE;
 
    /* connect after loading, just to retain sanity. */
@@ -424,7 +416,8 @@ sc_window *sc_window_new(sc_config *c, __libj_unused int argc, __libj_unused cha
 static inline void _sc_window_unref_land_buffer(sc_window_gtk *w) {
 
    if(w->landbuffer != NULL) {
-      g_object_unref(w->landbuffer);
+      cairo_surface_destroy(w->landbuffer);
+      w->landbuffer = NULL;
    }
 
 }
@@ -495,7 +488,7 @@ void sc_window_resize(sc_window *w_) {
 
    /* There went the landbuffer... */
    _sc_window_unref_land_buffer(w);
-   w->landbuffer = gdk_pixmap_new(w->app->window, c->fieldwidth, c->fieldheight, -1);
+   w->landbuffer = cairo_image_surface_create(CAIRO_FORMAT_RGB24, c->fieldwidth, c->fieldheight);
 
    /*  We just seriously fsck'd things up  */
    gtk_widget_set_size_request(sc_display_get_drawbuf(SC_DISPLAY(w->screen)),
@@ -509,8 +502,8 @@ void sc_window_resize(sc_window *w_) {
                    c->land->width, c->land->height,
                    SC_REGENERATE_LAND | SC_REDRAW_LAND);
    sc_pixmap_copy_gtk(sc_display_get_buffer(SC_DISPLAY(w->screen)),
-                      sc_display_get_gc(SC_DISPLAY(w->screen)),
-                      w->logo, w->logo_m,
+                      sc_display_get_cr(SC_DISPLAY(w->screen)),
+                      w->logo,
                       c->land->width - sc_pixmap_width_gtk(w->logo),
                       c->land->height - sc_pixmap_height_gtk(w->logo));
 
@@ -551,31 +544,18 @@ void sc_window_load_fonts(sc_window_gtk *w) {
    assert(w != NULL);
    c = w->c;
 
-   /* Load the necessary fonts */
-   w->fixed_font = gdk_font_load(c->fixed_font);
-   w->italic_fixed_font = gdk_font_load(c->italic_fixed_font);
-   w->bold_fixed_font = gdk_font_load(c->bold_fixed_font);
+   w->fixed_font        = pango_font_description_from_string(c->fixed_font);
+   w->italic_fixed_font = pango_font_description_from_string(c->italic_fixed_font);
+   w->bold_fixed_font   = pango_font_description_from_string(c->bold_fixed_font);
 
-   /* Make sure the fonts actually loaded */
    if(w->fixed_font == NULL) {
-      printf("WARNING:  The font \"%s\" could not be loaded.  Trying \"fixed\"\n", c->fixed_font);
-      w->fixed_font = gdk_font_load("fixed");
-      if(w->fixed_font == NULL) {
-         printf("ERROR:    Oh hell, you've got serious problems.  I couldn't find \"fixed\" either. Bailing out.\n");
-         abort();
-      }
+      w->fixed_font = pango_font_description_from_string("Monospace 10");
    }
    if(w->italic_fixed_font == NULL) {
-      printf("WARNING:  The font \"%s\" could not be loaded.  Trying \"%s\".  You won't have italic fonts.\n",
-             c->italic_fixed_font, c->fixed_font);
-      w->italic_fixed_font = w->fixed_font;
-      gdk_font_ref(w->italic_fixed_font);
+      w->italic_fixed_font = pango_font_description_copy(w->fixed_font);
    }
    if(w->bold_fixed_font == NULL) {
-      printf("WARNING:  The font \"%s\" could not be loaded.  Trying \"%s\".  You won't have bold fonts.\n",
-             c->bold_fixed_font, c->fixed_font);
-      w->bold_fixed_font = w->fixed_font;
-      gdk_font_ref(w->bold_fixed_font);
+      w->bold_fixed_font = pango_font_description_copy(w->fixed_font);
    }
 
 }
@@ -584,12 +564,11 @@ void sc_window_load_fonts(sc_window_gtk *w) {
 
 void sc_window_unload_fonts(sc_window_gtk *w) {
 
-int i;
    assert(w != NULL);
 
-   if(w->fixed_font != NULL)        gdk_font_unref(w->fixed_font);
-   if(w->italic_fixed_font != NULL) gdk_font_unref(w->italic_fixed_font);
-   if(w->bold_fixed_font != NULL)   gdk_font_unref(w->bold_fixed_font);
+   if(w->fixed_font != NULL)        { pango_font_description_free(w->fixed_font);        w->fixed_font = NULL; }
+   if(w->italic_fixed_font != NULL) { pango_font_description_free(w->italic_fixed_font); w->italic_fixed_font = NULL; }
+   if(w->bold_fixed_font != NULL)   { pango_font_description_free(w->bold_fixed_font);   w->bold_fixed_font = NULL; }
 
 }
 

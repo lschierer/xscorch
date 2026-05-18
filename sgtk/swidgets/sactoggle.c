@@ -40,7 +40,7 @@ static inline void _sc_ac_toggle_emit_paint(ScACToggle *toggle) {
 
    assert(IS_SC_AC_TOGGLE(toggle));
 
-   g_signal_emit_by_name(GTK_OBJECT(toggle), "paint", NULL, NULL);
+   g_signal_emit_by_name(G_OBJECT(toggle), "paint", NULL, NULL);
 
 }
 
@@ -52,18 +52,17 @@ static void _sc_ac_toggle_draw(ScGadget *gadget) {
 
    ScACToggle *toggle = SC_AC_TOGGLE(gadget);
    ScActiveConsole *cons = gadget->console;
-   GtkWidget *widget = (GtkWidget *)cons;
    gboolean focus, sensitive;
-   GdkGC *foreground;
+   GdkColor *fgcolor;
+   GdkColor interior;
+   cairo_t *cr;
    GdkRectangle bounds;
-   /* TEMP - We want to use a real palette color (see below). */
-   GdkColor color;
+   double cx, cy, r;
 
    /* Can we even draw yet? */
    if(sc_drawbuf_get_buffer(SC_DRAWBUF(cons)) == NULL) return;
 
-   /* Request a GC. */
-   foreground = gdk_gc_new(widget->window);
+   cr = sc_drawbuf_get_cr(SC_DRAWBUF(cons));
 
    /* Figure out our extents */
    sc_gadget_get_extents(gadget, &bounds);
@@ -76,80 +75,51 @@ static void _sc_ac_toggle_draw(ScGadget *gadget) {
    /* Find out if the gadget will be sensitive. */
    sensitive = gtk_widget_is_sensitive(GTK_WIDGET(gadget->console));
 
-   /* Setup the GC colors for the toggle (drawing outer). */
-   if(!sensitive)
-      gdk_gc_set_foreground(foreground, sc_console_get_color(SC_CONSOLE(cons), SC_CONSOLE_FOREDISABLED));
-   else if(focus)
-      gdk_gc_set_foreground(foreground, sc_console_get_color(SC_CONSOLE(cons), SC_CONSOLE_FORECURSOR));
-   else
-      gdk_gc_set_foreground(foreground, sc_console_get_color(SC_CONSOLE(cons), SC_CONSOLE_FOREGROUND));
-
    /* Draw the outer circle of the toggle. */
-   gdk_draw_arc(sc_drawbuf_get_buffer(SC_DRAWBUF(cons)),
-                foreground, TRUE,
-                bounds.x, bounds.y,
-                bounds.width - 1, bounds.height - 1,
-                0, 360 * 64);
-
-#ifndef ___TEMP_toggle_color
-   /*
-    * TEMP - We want to use a real palette color here...
-    * However, we haven't gotten around to deciding exactly
-    * what colors go in the palette for consoles or even
-    * how to make that decision, so for now we temporarily
-    * allocate our own here in the toggle.  This should
-    * definitely be considered a rather sad hack in nature.
-    */
    if(!sensitive)
-      gdk_color_parse("#444444", &color);
+      fgcolor = sc_console_get_color(SC_CONSOLE(cons), SC_CONSOLE_FOREDISABLED);
    else if(focus)
-      gdk_color_parse("#886666", &color);
+      fgcolor = sc_console_get_color(SC_CONSOLE(cons), SC_CONSOLE_FORECURSOR);
    else
-      gdk_color_parse("#777777", &color);
+      fgcolor = sc_console_get_color(SC_CONSOLE(cons), SC_CONSOLE_FOREGROUND);
 
-   gdk_colormap_alloc_color(gtk_widget_get_colormap((GtkWidget *)cons), &color, FALSE, TRUE);
-   gdk_gc_set_foreground(foreground, &color);
-#else
-   /* Setup the GC colors for the toggle (drawing center). */
+   cx = bounds.x + (bounds.width - 1) / 2.0;
+   cy = bounds.y + (bounds.height - 1) / 2.0;
+   r  = (bounds.width - 1) / 2.0;
+   cairo_set_source_rgb(cr, fgcolor->red/65535.0, fgcolor->green/65535.0, fgcolor->blue/65535.0);
+   cairo_arc(cr, cx, cy, r, 0, 2 * G_PI);
+   cairo_fill(cr);
+
+   /* Draw interior lighted section (use temporary palette hack color). */
    if(!sensitive)
-      gdk_gc_set_foreground(foreground, sc_console_get_color(SC_CONSOLE(cons), SC_CONSOLE_BACKDISABLED));
+      gdk_color_parse("#444444", &interior);
    else if(focus)
-      gdk_gc_set_foreground(foreground, sc_console_get_color(SC_CONSOLE(cons), SC_CONSOLE_BACKCURSOR));
+      gdk_color_parse("#886666", &interior);
    else
-      gdk_gc_set_foreground(foreground, sc_console_get_color(SC_CONSOLE(cons), SC_CONSOLE_BACKGROUND));
-#endif
+      gdk_color_parse("#777777", &interior);
 
-   /* Draw the interior lighted section of the toggle. */
-   gdk_draw_arc(sc_drawbuf_get_buffer(SC_DRAWBUF(cons)),
-                foreground, TRUE,
-                bounds.x + bounds.width * 1 / 8, bounds.y + bounds.height * 1 / 8,
-                bounds.width * 3 / 4, bounds.height * 3 / 4,
-                0, 360 * 64);
+   cairo_set_source_rgb(cr, interior.red/65535.0, interior.green/65535.0, interior.blue/65535.0);
+   cairo_arc(cr, bounds.x + bounds.width / 2.0, bounds.y + bounds.height / 2.0,
+             bounds.width * 3.0 / 8.0, 0, 2 * G_PI);
+   cairo_fill(cr);
 
-   /* If the toggle is depressed, give it some Prozac.
-      No, seriously, draw its little filled inner circle. */
+   /* If the toggle is depressed, draw its little filled inner circle. */
    if(toggle->state) {
-      /* Setup the GC colors for the toggle (drawing inner). */
       if(!sensitive)
-         gdk_gc_set_foreground(foreground, sc_console_get_color(SC_CONSOLE(cons), SC_CONSOLE_FOREDISABLED));
+         fgcolor = sc_console_get_color(SC_CONSOLE(cons), SC_CONSOLE_FOREDISABLED);
       else if(focus)
-         gdk_gc_set_foreground(foreground, sc_console_get_color(SC_CONSOLE(cons), SC_CONSOLE_FORECURSOR));
+         fgcolor = sc_console_get_color(SC_CONSOLE(cons), SC_CONSOLE_FORECURSOR);
       else
-         gdk_gc_set_foreground(foreground, sc_console_get_color(SC_CONSOLE(cons), SC_CONSOLE_FOREGROUND));
+         fgcolor = sc_console_get_color(SC_CONSOLE(cons), SC_CONSOLE_FOREGROUND);
 
-      /* And then draw it. */
-      gdk_draw_arc(sc_drawbuf_get_buffer(SC_DRAWBUF(cons)),
-                   foreground, TRUE,
-                   bounds.x + bounds.width * 1 / 3, bounds.y + bounds.height * 1 / 3,
-                   bounds.width * 1 / 3, bounds.height * 1 / 3,
-                   0, 360 * 64);
+      cairo_set_source_rgb(cr, fgcolor->red/65535.0, fgcolor->green/65535.0, fgcolor->blue/65535.0);
+      cairo_arc(cr, bounds.x + bounds.width / 2.0, bounds.y + bounds.height / 2.0,
+                bounds.width / 6.0, 0, 2 * G_PI);
+      cairo_fill(cr);
    }
 
-   /* Release the GC. */
-   g_object_unref(foreground);
-
    /* Make sure everything is queued to be drawn. */
-   sc_drawbuf_queue_draw(SC_DRAWBUF(widget), bounds.x, bounds.y, bounds.width, bounds.height);
+   sc_drawbuf_queue_draw(SC_DRAWBUF(cons), bounds.x, bounds.y, bounds.width, bounds.height);
 
 }
 
@@ -206,10 +176,10 @@ static gint _sc_ac_toggle_key(ScGadget *gadget, GdkEventKey *event) {
    #endif /* debug */
 
    switch(event->keyval) {
-      case GDK_Return:
-      case GDK_KP_Enter:
-      case GDK_space:
-      case GDK_KP_Space:
+      case GDK_KEY_Return:
+      case GDK_KEY_KP_Enter:
+      case GDK_KEY_space:
+      case GDK_KEY_KP_Space:
          toggle->state = toggle->state ? FALSE : TRUE;
          _sc_ac_toggle_emit_paint(toggle);
          return(TRUE);

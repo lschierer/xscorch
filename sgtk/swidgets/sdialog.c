@@ -21,8 +21,6 @@
    51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
 
 */
-#define  __ALLOW_DEPRECATED_GDK__
-
 #include <assert.h>
 #include <errno.h>
 #include <stdio.h>
@@ -53,13 +51,13 @@ static guint _sc_dialog_signals[LAST_SIGNAL] = { 0 };
 
 
 
-static void _sc_dialog_destroy(GtkObject *obj) {
+static void _sc_dialog_destroy(GtkWidget *widget) {
 /* sc_dialog_destroy
    Destroy a dialogue window.  If the state pointer is not NULL, then the
    state is updated to indicate the dialog has been destroyed.  The parent
    destructor will be called.  */
 
-   ScDialog *dlg = SC_DIALOG(obj);
+   ScDialog *dlg = SC_DIALOG(widget);
 
    /* Update state flag */
    if(dlg->state != NULL) {
@@ -67,8 +65,8 @@ static void _sc_dialog_destroy(GtkObject *obj) {
    }
 
    /* Call parent destructor */
-   if(GTK_OBJECT_CLASS(parent_class)->destroy != NULL) {
-      GTK_OBJECT_CLASS(parent_class)->destroy(obj);
+   if(GTK_WIDGET_CLASS(parent_class)->destroy != NULL) {
+      GTK_WIDGET_CLASS(parent_class)->destroy(widget);
    }
 
 }
@@ -87,7 +85,7 @@ static void _sc_dialog_apply_clicked(__libj_unused GtkWidget *button, ScDialog *
       this dialog window while we process the signal, to ensure that
       it does not get prematurely destroyed.  */
    g_object_ref(G_OBJECT(dlg));
-   g_signal_emit(GTK_OBJECT(dlg), _sc_dialog_signals[APPLY_SIGNAL], 0);
+   g_signal_emit(G_OBJECT(dlg), _sc_dialog_signals[APPLY_SIGNAL], 0);
    g_object_unref(G_OBJECT(dlg));
 
 }
@@ -148,8 +146,8 @@ static gint _sc_dialog_key_press(GtkWidget *widget, GdkEventKey *key) {
 
    /* Check to see if enter or escape were pressed. */
    switch(key->keyval) {
-      case GDK_Return:
-      case GDK_KP_Enter:
+      case GDK_KEY_Return:
+      case GDK_KEY_KP_Enter:
          if(dlg->flags & SC_DIALOG_OK)          _sc_dialog_ok_clicked(widget, dlg);
          else if(dlg->flags & SC_DIALOG_YES)    _sc_dialog_ok_clicked(widget, dlg);
          else if(dlg->flags & SC_DIALOG_APPLY)  _sc_dialog_apply_clicked(widget, dlg);
@@ -158,7 +156,7 @@ static gint _sc_dialog_key_press(GtkWidget *widget, GdkEventKey *key) {
          else if(dlg->flags & SC_DIALOG_CLOSE)  _sc_dialog_cancel_clicked(widget, dlg);
          else return(FALSE);
          return(TRUE);
-      case GDK_Escape:
+      case GDK_KEY_Escape:
          if(dlg->flags & SC_DIALOG_CANCEL)      _sc_dialog_cancel_clicked(widget, dlg);
          else if(dlg->flags & SC_DIALOG_NO)     _sc_dialog_cancel_clicked(widget, dlg);
          else if(dlg->flags & SC_DIALOG_CLOSE)  _sc_dialog_cancel_clicked(widget, dlg);
@@ -191,7 +189,7 @@ static void _sc_dialog_class_init(ScDialogClass *klass) {
 /* sc_dialog_class_init
    Initialise the dialog class.  */
 
-   GtkObjectClass *object_class = (GtkObjectClass *)klass;
+   GObjectClass *object_class = (GObjectClass *)klass;
 
    /* Get parent class */
    parent_class = g_type_class_peek(gtk_window_get_type());
@@ -213,7 +211,7 @@ static void _sc_dialog_class_init(ScDialogClass *klass) {
    klass->apply = NULL;
 
    /* Setup signals from parent */
-   GTK_OBJECT_CLASS(klass)->destroy = _sc_dialog_destroy;
+   GTK_WIDGET_CLASS(klass)->destroy = _sc_dialog_destroy;
    GTK_WIDGET_CLASS(klass)->key_press_event = _sc_dialog_key_press;
 
 }
@@ -284,7 +282,7 @@ GtkWidget *sc_dialog_new(const char *title, const char *msgtext, guint flags) {
       gtk_window_set_title(GTK_WINDOW(dialog), title);
    }
 
-   vbox = gtk_vbox_new(FALSE, 5);
+   vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 5);
    gtk_container_set_border_width(GTK_CONTAINER(dialog), 10);
    gtk_container_add(GTK_CONTAINER(dialog), vbox);
 
@@ -297,12 +295,12 @@ GtkWidget *sc_dialog_new(const char *title, const char *msgtext, guint flags) {
    if(flags & SC_DIALOG_NO_GRID) {
       dialog->grid = NULL;
    } else {
-      dialog->grid = gtk_table_new(1, 1, FALSE);
+      dialog->grid = gtk_grid_new();
       gtk_box_pack_start(GTK_BOX(vbox), dialog->grid, TRUE, TRUE, 0);
    }
 
-   gtk_box_pack_start(GTK_BOX(vbox), gtk_hseparator_new(), FALSE, FALSE, 0);
-   hbox = gtk_hbox_new(FALSE, 5);
+   gtk_box_pack_start(GTK_BOX(vbox), gtk_separator_new(GTK_ORIENTATION_HORIZONTAL), FALSE, FALSE, 0);
+   hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
    /* This box houses the command buttons and should not rescale vertically */
    gtk_box_pack_start(GTK_BOX(vbox), hbox, FALSE, FALSE, 0);
 
@@ -399,12 +397,12 @@ void sc_dialog_grid_attach(ScDialog *dlg, GtkWidget *widget, int row, int col) {
 /* sc_dialog_grid_attach
    Attaches a widget to the dialog's grid.  */
 
-   gtk_table_attach(GTK_TABLE(dlg->grid), widget, 
-                    col, col + 1, row, row + 1, 
-                    GTK_FILL | GTK_EXPAND, GTK_FILL | GTK_EXPAND, 
-                    2, 2);
-   if(GTK_IS_MISC(widget)) {
-      gtk_misc_set_alignment(GTK_MISC(widget), 0, 0.5);
+   gtk_widget_set_hexpand(widget, TRUE);
+   gtk_widget_set_vexpand(widget, TRUE);
+   gtk_grid_attach(GTK_GRID(dlg->grid), widget, col, row, 1, 1);
+   if(GTK_IS_LABEL(widget)) {
+      gtk_widget_set_halign(widget, GTK_ALIGN_START);
+      gtk_widget_set_valign(widget, GTK_ALIGN_CENTER);
    }
 
 }
@@ -416,10 +414,9 @@ void sc_dialog_grid_attach_label(ScDialog *dlg, const char *msg, int row, int co
    Attaches a text label to the dialog's grid.  */
 
    GtkWidget *label = sc_label_new(msg);
-   gtk_table_attach(GTK_TABLE(dlg->grid), label, 
-                    col, col + 1, row, row + 1, 
-                    GTK_FILL, GTK_FILL, 2, 2);
-   gtk_misc_set_alignment(GTK_MISC(label), 0, 0.5);
+   gtk_widget_set_halign(label, GTK_ALIGN_START);
+   gtk_widget_set_valign(label, GTK_ALIGN_CENTER);
+   gtk_grid_attach(GTK_GRID(dlg->grid), label, col, row, 1, 1);
 
 }
 
@@ -482,7 +479,7 @@ void sc_dialog_error(const char *s) {
 
 
 
-void sc_dialog_text(const char *filename, GdkFont *font_normal, GdkFont *font_italic, GdkFont *font_bold) {
+void sc_dialog_text(const char *filename, PangoFontDescription *font_normal, PangoFontDescription *font_italic, PangoFontDescription *font_bold) {
 
    ScDialog *dlg;
    char buf[SC_DIALOG_STRING_BUFFER];
@@ -492,8 +489,8 @@ void sc_dialog_text(const char *filename, GdkFont *font_normal, GdkFont *font_it
    int  width;
    int height;
    FILE *f;
-   GdkFont *font;
-   GdkFont *lfont;
+   PangoFontDescription *font;
+   PangoFontDescription *lfont;
    GtkWidget *scroll;
    GtkWidget *message;
    GtkTextBuffer *textbuf;
@@ -508,19 +505,9 @@ void sc_dialog_text(const char *filename, GdkFont *font_normal, GdkFont *font_it
 
    dlg = SC_DIALOG(sc_dialog_new(filename, NULL, SC_DIALOG_CLOSE | SC_DIALOG_NONMODAL));
 
-   /* Load the needed fonts */
-   if(font_normal != NULL) gdk_font_ref(font_normal);
-   if(font_italic != NULL) gdk_font_ref(font_italic);
-   if(font_bold   != NULL) gdk_font_ref(font_bold);
-   if(font_normal == NULL) {
-      width = 8;
-      height = 16;
-   } else {
-      width = gdk_char_width(font_normal, 'W');
-      height = (font_normal->ascent + font_normal->descent);
-   }
-   width  *= 88;
-   height *= 33;
+   /* Font metrics for sizing */
+   width  = 8 * 88;
+   height = 16 * 33;
 
    scroll = gtk_scrolled_window_new(NULL, NULL);
    sc_dialog_grid_attach(dlg, scroll, 0, 0);
@@ -597,15 +584,6 @@ void sc_dialog_text(const char *filename, GdkFont *font_normal, GdkFont *font_it
          gtk_text_buffer_insert_with_tags(textbuf, &iter, out, pout - out, tag, NULL);
       }
    }
-   if(font_normal != NULL) {
-      gdk_font_unref(font_normal);
-   }
-   if(font_italic != NULL) {
-      gdk_font_unref(font_italic);
-   }
-   if(font_bold   != NULL) {
-      gdk_font_unref(font_bold);
-   }
    g_object_thaw_notify(G_OBJECT(message));
    fclose(f);
 
@@ -617,7 +595,7 @@ void sc_dialog_text(const char *filename, GdkFont *font_normal, GdkFont *font_it
 
 
 void sc_dialog_text_buffer(const char *title, const char *buffer,
-                           GdkFont *font_normal, GdkFont *font_italic, GdkFont *font_bold) {
+                           PangoFontDescription *font_normal, PangoFontDescription *font_italic, PangoFontDescription *font_bold) {
 
    ScDialog *dlg;
    char buf[SC_DIALOG_STRING_BUFFER];
@@ -627,8 +605,8 @@ void sc_dialog_text_buffer(const char *title, const char *buffer,
    int  width;
    int height;
    int offset = 0;
-   GdkFont *font;
-   GdkFont *lfont;
+   PangoFontDescription *font;
+   PangoFontDescription *lfont;
    GtkWidget *scroll;
    GtkWidget *message;
    GtkTextBuffer *textbuf;
@@ -637,19 +615,9 @@ void sc_dialog_text_buffer(const char *title, const char *buffer,
 
    dlg = SC_DIALOG(sc_dialog_new(title, NULL, SC_DIALOG_CLOSE | SC_DIALOG_NONMODAL));
 
-   /* Load the needed fonts */
-   if(font_normal != NULL) gdk_font_ref(font_normal);
-   if(font_italic != NULL) gdk_font_ref(font_italic);
-   if(font_bold   != NULL) gdk_font_ref(font_bold);
-   if(font_normal == NULL) {
-      width = 8;
-      height = 16;
-   } else {
-      width = gdk_char_width(font_normal, 'W');
-      height = (font_normal->ascent + font_normal->descent);
-   }
-   width  *= 88;
-   height *= 33;
+   /* Font metrics for sizing */
+   width  = 8 * 88;
+   height = 16 * 33;
 
    scroll = gtk_scrolled_window_new(NULL, NULL);
    sc_dialog_grid_attach(dlg, scroll, 0, 0);
@@ -725,15 +693,6 @@ void sc_dialog_text_buffer(const char *title, const char *buffer,
          gtk_text_buffer_get_end_iter(textbuf, &iter);
          gtk_text_buffer_insert_with_tags(textbuf, &iter, out, pout - out, tag, NULL);
       }
-   }
-   if(font_normal != NULL) {
-      gdk_font_unref(font_normal);
-   }
-   if(font_italic != NULL) {
-      gdk_font_unref(font_italic);
-   }
-   if(font_bold   != NULL) {
-      gdk_font_unref(font_bold);
    }
    g_object_thaw_notify(G_OBJECT(message));
 

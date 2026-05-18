@@ -29,30 +29,18 @@
 #include <xscorch.h>
 
 
-#ifndef __ALLOW_DEPRECATED_GDK__
-   /* For reasons beyond my comprehension, they deprecated this in 2.0 */
-   #define gdk_color_black(cmap, color) \
-      do {                              \
-         (color)->red   = 0;            \
-         (color)->green = 0;            \
-         (color)->blue  = 0;            \
-         gdk_colormap_alloc_color((cmap), (color), FALSE, TRUE); \
-      } while(0)
-#endif /* __ALLOW_DEPRECATED_GDK__ undefined? */
+/* Simplified color-to-black helper (no colormap needed in GTK3) */
+#define gdk_color_black(cmap, color) \
+   do {                              \
+      (color)->red   = 0;            \
+      (color)->green = 0;            \
+      (color)->blue  = 0;            \
+   } while(0)
 
 
 /* Debugging constants */
 #define  SC_GTK_DEBUG_GTK              0
 #define  SC_GTK_DEBUG_PAINT            0
-
-
-/* Disable deprecated GTK 2.0 interfaces, if applicable */
-#if !defined(__ALLOW_DEPRECATED_GTK__)
-   #define  GTK_DISABLE_DEPRECATED
-#endif
-#if !defined(__ALLOW_DEPRECATED_GDK__)
-   #define  GDK_DISABLE_DEPRECATED
-#endif
 
 
 #endif /* __sgtk_h_included */

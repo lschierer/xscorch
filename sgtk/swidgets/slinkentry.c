@@ -49,7 +49,7 @@ static void _sc_link_entry_set(GtkEditable *ed) {
    if(entry->value != NULL) {
       strcopyb(entry->value, gtk_entry_get_text(GTK_ENTRY(ed)), entry->maxlen);
    }
-   g_signal_emit(GTK_OBJECT(entry), _sc_link_entry_signals[MODIFIED_SIGNAL], 0);
+   g_signal_emit(G_OBJECT(entry), _sc_link_entry_signals[MODIFIED_SIGNAL], 0);
 
 }
 
@@ -57,7 +57,7 @@ static void _sc_link_entry_set(GtkEditable *ed) {
 
 static void _sc_link_entry_class_init(ScLinkEntryClass *klass) {
 
-   GtkObjectClass *object_class = (GtkObjectClass *)klass;
+   GObjectClass *object_class = (GObjectClass *)klass;
 
    parent_class = g_type_class_peek(gtk_entry_get_type());
 

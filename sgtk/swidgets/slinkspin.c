@@ -49,7 +49,7 @@ static void _sc_link_spin_set(GtkEditable *ed) {
    if(spin->value != NULL) {
       *spin->value = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(ed));
    }
-   g_signal_emit(GTK_OBJECT(spin), _sc_link_spin_signals[MODIFIED_SIGNAL], 0);
+   g_signal_emit(G_OBJECT(spin), _sc_link_spin_signals[MODIFIED_SIGNAL], 0);
 
 }
 
@@ -57,7 +57,7 @@ static void _sc_link_spin_set(GtkEditable *ed) {
 
 static void _sc_link_spin_class_init(ScLinkSpinClass *klass) {
 
-   GtkObjectClass *object_class = (GtkObjectClass *)klass;
+   GObjectClass *object_class = (GObjectClass *)klass;
 
    parent_class = g_type_class_peek(gtk_spin_button_get_type());
 
@@ -145,7 +145,7 @@ static void _sc_link_spinf_set(GtkEditable *ed) {
    if(spin->value != NULL) {
       *spin->value = gtk_spin_button_get_value(GTK_SPIN_BUTTON(spin));
    }
-   g_signal_emit(GTK_OBJECT(spin), _sc_link_spinf_signals[MODIFIED_SIGNAL], 0);
+   g_signal_emit(G_OBJECT(spin), _sc_link_spinf_signals[MODIFIED_SIGNAL], 0);
 
 }
 
@@ -153,7 +153,7 @@ static void _sc_link_spinf_set(GtkEditable *ed) {
 
 static void _sc_link_spinf_class_init(ScLinkSpinFClass *klass) {
 
-   GtkObjectClass *object_class = (GtkObjectClass *)klass;
+   GObjectClass *object_class = (GObjectClass *)klass;
 
    parent_class = g_type_class_peek(gtk_spin_button_get_type());
 

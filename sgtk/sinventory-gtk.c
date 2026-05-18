@@ -169,16 +169,16 @@ static gboolean _sc_inventory_weapon_key_gtk(__libj_unused ScActiveConsole *cons
    sc_weapon_info *info = (sc_weapon_info *)spot->data;
 
    switch(event->keyval) {
-      case GDK_Right:
-      case GDK_KP_Right:
+      case GDK_KEY_Right:
+      case GDK_KEY_KP_Right:
          sc_inventory_buy_weapon(inv->p, info);
          _sc_inventory_info_paint_gtk(inv);
          _sc_inventory_weapon_paint_gtk(inv);
          _sc_inventory_accessory_paint_gtk(inv);
          return(TRUE);
 
-      case GDK_Left:
-      case GDK_KP_Left:
+      case GDK_KEY_Left:
+      case GDK_KEY_KP_Left:
          sc_inventory_sell_weapon(inv->p, info);
          _sc_inventory_info_paint_gtk(inv);
          _sc_inventory_weapon_paint_gtk(inv);
@@ -202,16 +202,16 @@ static gboolean _sc_inventory_accessory_key_gtk(__libj_unused ScActiveConsole *c
    sc_accessory_info *info = (sc_accessory_info *)spot->data;
 
    switch(event->keyval) {
-      case GDK_Right:
-      case GDK_KP_Right:
+      case GDK_KEY_Right:
+      case GDK_KEY_KP_Right:
          sc_inventory_buy_accessory(inv->p, info);
          _sc_inventory_info_paint_gtk(inv);
          _sc_inventory_weapon_paint_gtk(inv);
          _sc_inventory_accessory_paint_gtk(inv);
          return(TRUE);
 
-      case GDK_Left:
-      case GDK_KP_Left:
+      case GDK_KEY_Left:
+      case GDK_KEY_KP_Left:
          sc_inventory_sell_accessory(inv->p, info);
          _sc_inventory_info_paint_gtk(inv);
          _sc_inventory_weapon_paint_gtk(inv);

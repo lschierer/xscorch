@@ -48,7 +48,7 @@ static void _sc_link_check_set(GtkToggleButton *toggle) {
    if(check->value != NULL) {
       *check->value = gtk_toggle_button_get_active(toggle);
    }
-   g_signal_emit(GTK_OBJECT(check), _sc_link_check_signals[MODIFIED_SIGNAL], 0);
+   g_signal_emit(G_OBJECT(check), _sc_link_check_signals[MODIFIED_SIGNAL], 0);
 
 }
 
@@ -56,7 +56,7 @@ static void _sc_link_check_set(GtkToggleButton *toggle) {
 
 static void _sc_link_check_class_init(ScLinkCheckClass *klass) {
 
-   GtkObjectClass *object_class = (GtkObjectClass *)klass;
+   GObjectClass *object_class = (GObjectClass *)klass;
 
    parent_class = g_type_class_peek(gtk_check_button_get_type());
 

@@ -28,7 +28,7 @@
 /* Include files */
 #include <sgtk.h>
 #include <gtk/gtk.h>
-#include <gtk/gtkdrawingarea.h>
+#include <cairo/cairo.h>
 
 
 /* ScDrawbuf casts */
@@ -40,8 +40,8 @@
 /* ScDrawbuf structure */
 typedef struct _ScDrawbuf {
    GtkDrawingArea drawing_area;     /* Parent is a drawing area */
-   GdkPixmap *screen_buffer;        /* OffScreen drawable pixmap */
-   GdkGC *screen_gc;                /* OffScreen drawable GC */
+   cairo_surface_t *screen_buffer;  /* OffScreen cairo surface */
+   cairo_t *screen_cr;              /* Cairo context for surface */
    gboolean style_configured;       /* True when style has been setup */
 } ScDrawbuf;
 
@@ -59,7 +59,7 @@ GtkWidget *sc_drawbuf_new(gint width, gint height);
 
 /* Hooks to get useful information from a drawbuf */
 #define sc_drawbuf_get_buffer(draw) ((draw)->screen_buffer)
-#define sc_drawbuf_get_gc(draw)     ((draw)->screen_gc)
+#define sc_drawbuf_get_cr(draw)     ((draw)->screen_cr)
 
 
 /* Redraw a drawing buffer */

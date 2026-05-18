@@ -68,9 +68,9 @@ static gboolean _sc_window_lottery_key_gtk(__libj_unused GtkWidget *widget,
    Handle keystrokes.  Advance on to the round proper. */
 
    switch(key->keyval) {
-      case GDK_Return:
-      case GDK_KP_Enter:
-      case GDK_Escape:
+      case GDK_KEY_Return:
+      case GDK_KEY_KP_Enter:
+      case GDK_KEY_Escape:
          sc_display_console_detach_all(SC_DISPLAY(w->screen));
          sc_game_set_state_now(w->c, w->c->game, SC_STATE_TURN_BEGIN);
          return(TRUE);

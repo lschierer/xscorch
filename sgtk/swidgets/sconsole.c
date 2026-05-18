@@ -20,7 +20,6 @@
    51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
 
 */
-#define  __ALLOW_DEPRECATED_GDK__
 
 #include <assert.h>
 #include <stdio.h>
@@ -29,6 +28,7 @@
 #include <sconsole.h>
 
 #include <gdk/gdkkeysyms.h>
+#include <pango/pangocairo.h>
 #include <libj/jstr/libjstr.h>
 
 
@@ -98,30 +98,13 @@ static inline void _sc_console_unref_fonts(ScConsole *cons) {
 
    assert(IS_SC_CONSOLE(cons));
    if(cons->screen_font != NULL) {
-      gdk_font_unref(cons->screen_font);
+      pango_font_description_free(cons->screen_font);
       cons->screen_font = NULL;
    }
    if(cons->screen_bold_font != NULL) {
-      gdk_font_unref(cons->screen_bold_font);
+      pango_font_description_free(cons->screen_bold_font);
       cons->screen_bold_font = NULL;
    }
-
-}
-
-
-
-static inline void _sc_console_ref_fonts(ScConsole *cons) {
-/* sc_console_ref_fonts
-   Install new fonts for this console.  This function assumes the
-   new GdkFont's have been assigned to screen_font and screen_bold_font,
-   but have NOT yet been referenced.  This is not used when the font
-   is loaded with gdk_font_load; it is ONLY used when we are passed a
-   new font from the outside world, that we need to reference.  */
-
-   assert(IS_SC_CONSOLE(cons));
-   _sc_console_valid_fonts(cons);
-   gdk_font_ref(cons->screen_font);
-   gdk_font_ref(cons->screen_bold_font);
 
 }
 
@@ -132,25 +115,23 @@ static inline void _sc_console_init_fonts(ScConsole *cons) {
    Load a reasonable set of default fonts.  */
 
    assert(IS_SC_CONSOLE(cons));
-   cons->screen_font = gdk_fontset_load("fixed");
-   cons->screen_bold_font = gdk_fontset_load("fixed");
+   cons->screen_font = pango_font_description_from_string("Monospace 10");
+   cons->screen_bold_font = pango_font_description_from_string("Monospace Bold 10");
    _sc_console_valid_fonts(cons);
 
 }
 
 
 
-static inline void _sc_console_set_fonts(ScConsole *cons, GdkFont *font, GdkFont *boldfont) {
+static inline void _sc_console_set_fonts(ScConsole *cons, PangoFontDescription *font, PangoFontDescription *boldfont) {
 /* sc_console_set_fonts
-   Release the current fonts on this console, and install the new fonts
-   that are passed as arguments.  The reference count on the existing
-   fonts is decremented, and the reference count on the new fonts will
-   be incremented.  */
+   Release the current fonts on this console, and install copies of the
+   new fonts that are passed as arguments.  The existing fonts are freed,
+   and copies of the new fonts are made.  */
 
    _sc_console_unref_fonts(cons);
-   cons->screen_font = font;
-   cons->screen_bold_font = boldfont;
-   _sc_console_ref_fonts(cons);
+   cons->screen_font = pango_font_description_copy(font);
+   cons->screen_bold_font = pango_font_description_copy(boldfont);
 
 }
 
@@ -190,20 +171,20 @@ static void _sc_console_destroy_data(ScConsole *cons) {
 
 
 
-static void _sc_console_destroy(GtkObject *obj) {
+static void _sc_console_destroy(GtkWidget *widget) {
 /* sc_console_destroy
    Destroys the indicated console.  This includes all internal data
    structures, and all widgets associated with the console.  The
    current fonts will also be unreferenced.  */
 
-   ScConsole *cons = SC_CONSOLE(obj);
+   ScConsole *cons = SC_CONSOLE(widget);
 
    _sc_console_destroy_data(cons);
    _sc_console_unref_fonts(cons);
 
    /* Check for a parent signal handler */
-   if(GTK_OBJECT_CLASS(parent_class)->destroy != NULL) {
-      GTK_OBJECT_CLASS(parent_class)->destroy(obj);
+   if(GTK_WIDGET_CLASS(parent_class)->destroy != NULL) {
+      GTK_WIDGET_CLASS(parent_class)->destroy(widget);
    } /* Does parent have default? */
 
 }
@@ -218,9 +199,20 @@ static inline gint _sc_console_char_width(ScConsole *cons) {
 /* sc_console_char_width
    Return the width of one character, in pixels */
 
-   int width1 = gdk_char_width(cons->screen_font, 'w');
-   int width2 = gdk_char_width(cons->screen_bold_font, 'w');
-   return(max(max(width1, width2), 1));
+   PangoLayout *layout;
+   int w1, w2, h;
+
+   layout = gtk_widget_create_pango_layout(GTK_WIDGET(cons), "w");
+   pango_layout_set_font_description(layout, cons->screen_font);
+   pango_layout_get_pixel_size(layout, &w1, &h);
+   g_object_unref(layout);
+
+   layout = gtk_widget_create_pango_layout(GTK_WIDGET(cons), "w");
+   pango_layout_set_font_description(layout, cons->screen_bold_font);
+   pango_layout_get_pixel_size(layout, &w2, &h);
+   g_object_unref(layout);
+
+   return(max(max(w1, w2), 1));
 
 }
 
@@ -230,9 +222,20 @@ static inline gint _sc_console_char_height(ScConsole *cons) {
 /* sc_console_char_height
    Return the height of one character, in pixels */
 
-   int height1 = cons->screen_font->ascent + cons->screen_font->descent;
-   int height2 = cons->screen_bold_font->ascent + cons->screen_bold_font->descent;
-   return(max(max(height1, height2), 1));
+   PangoLayout *layout;
+   int w, h1, h2;
+
+   layout = gtk_widget_create_pango_layout(GTK_WIDGET(cons), "Ag");
+   pango_layout_set_font_description(layout, cons->screen_font);
+   pango_layout_get_pixel_size(layout, &w, &h1);
+   g_object_unref(layout);
+
+   layout = gtk_widget_create_pango_layout(GTK_WIDGET(cons), "Ag");
+   pango_layout_set_font_description(layout, cons->screen_bold_font);
+   pango_layout_get_pixel_size(layout, &w, &h2);
+   g_object_unref(layout);
+
+   return(max(max(h1, h2), 1));
 
 }
 
@@ -409,44 +412,42 @@ static inline gboolean _sc_console_in_bounds(gint cx, gint cy, gint x, gint y, g
 
 
 
-static void _sc_console_draw_char(ScConsole *cons, GdkGC *fg, GdkGC *bg, gboolean bold, gint x, gint y, char ch) {
+static void _sc_console_draw_char(ScConsole *cons, GdkColor *fg, GdkColor *bg, gboolean bold, gint x, gint y, char ch) {
 /* sc_console_draw_char
-   Draws a single character using the indicated fg/bg GCs, and at the
+   Draws a single character using the indicated fg/bg colours, and at the
    CHARACTER position (x,y).  The coordinate will be converted to
    pixels automatically in this function.  The character to write is
    specified by this function; this function will select the bold or
-   normal font based on the "bold" flag.  
-   
+   normal font based on the "bold" flag.
+
    The coordinates are CHARACTER coordinates, but they are with respect
    to the VIEWPORT, not the character buffer.  */
 
-   GdkFont *font;
+   cairo_t *cr = sc_drawbuf_get_cr(SC_DRAWBUF(cons));
+   PangoLayout *layout;
+   PangoFontDescription *font = bold ? cons->screen_bold_font : cons->screen_font;
+   char text[2] = { ch, '\0' };
 
    assert(IS_SC_CONSOLE(cons));
    assert(fg != NULL);
    assert(bg != NULL);
 
-   /* Which font to select? */
-   if(bold) {
-      font = cons->screen_bold_font;
-   } else {
-      font = cons->screen_font;
-   }
-
    /* Update X, Y to account for a window frame; also,
       set X, Y to the screen coordinates to write to. */
    sc_console_get_pixel_from_char(cons, &x, &y, FALSE);
 
-   /* Write the text! */
-   gdk_draw_rectangle(sc_drawbuf_get_buffer(SC_DRAWBUF(cons)),
-                      bg,
-                      TRUE,
-                      x, y,
-                      _sc_console_char_width(cons), _sc_console_char_height(cons));
-   gdk_draw_text(sc_drawbuf_get_buffer(SC_DRAWBUF(cons)),
-                 font, fg,
-                 x, y + font->ascent,
-                 &ch, 1);
+   /* Fill background rectangle */
+   cairo_set_source_rgb(cr, bg->red/65535.0, bg->green/65535.0, bg->blue/65535.0);
+   cairo_rectangle(cr, x, y, _sc_console_char_width(cons), _sc_console_char_height(cons));
+   cairo_fill(cr);
+
+   /* Draw the character */
+   cairo_set_source_rgb(cr, fg->red/65535.0, fg->green/65535.0, fg->blue/65535.0);
+   cairo_move_to(cr, x, y);
+   layout = gtk_widget_create_pango_layout(GTK_WIDGET(cons), text);
+   pango_layout_set_font_description(layout, font);
+   pango_cairo_show_layout(cr, layout);
+   g_object_unref(layout);
 
 }
 
@@ -458,19 +459,17 @@ static void _sc_console_draw_region(ScConsole *cons, gint x, gint y, gint width,
    coordinates, with corner (x,y) and the indicated width and height.  This
    function uses information about active highlights and the text buffer to
    determine what to draw.  width/height may be negative, in which case the
-   rectangle is flipped appropriately.  
-   
+   rectangle is flipped appropriately.
+
    The coordinates are CHARACTER coordinates, but they are relative to the
    CHARACTER BUFFER, not the viewport.  */
 
    ScConsoleHighlight *high;  /* Active highlight for current position */
-   GdkColor *oldfgcolor;      /* Previous foreground colour (to speed up GC ops) */
-   GdkColor *oldbgcolor;      /* Previous background colour (to speed up GC ops) */
+   GdkColor *oldfgcolor;      /* Previous foreground colour (to speed up drawing) */
+   GdkColor *oldbgcolor;      /* Previous background colour (to speed up drawing) */
    GdkRectangle region;       /* Rectangle representing redraw region */
    GdkColor *fgcolor;         /* Current foreground colour */
    GdkColor *bgcolor;         /* Current background colour */
-   GdkGC *fg_gc;              /* Foreground GC */
-   GdkGC *bg_gc;              /* Background GC */
    GList *cur;                /* List to iterate the highlights */
 
    char *chptr;               /* Pointer to current character to draw */
@@ -521,15 +520,9 @@ static void _sc_console_draw_region(ScConsole *cons, gint x, gint y, gint width,
    if(x2 >= cons->text.viewx + cons->text.vieww) x2 = cons->text.viewx + cons->text.vieww - 1;
    if(y2 >= cons->text.viewy + cons->text.viewh) y2 = cons->text.viewy + cons->text.viewh - 1;
 
-   /* Request a GC */
-   fg_gc = gdk_gc_new(((GtkWidget *)cons)->window);
-   bg_gc = gdk_gc_new(((GtkWidget *)cons)->window);
-
    /* Setup default foreground, background colors */
    oldfgcolor = &cons->colors.foreground;
    oldbgcolor = &cons->colors.background;
-   gdk_gc_set_foreground(fg_gc, oldfgcolor);
-   gdk_gc_set_foreground(bg_gc, oldbgcolor);
 
    /* Start printing characters... */
    for(cy = y1; cy <= y2; ++cy) {
@@ -552,13 +545,6 @@ static void _sc_console_draw_region(ScConsole *cons, gint x, gint y, gint width,
             cur = cur->next;
             if(_sc_console_in_bounds(cx, cy, high->x, high->y, high->width, high->height)) {
                /* We are on this highlight; set new fg/bg color */
-               if(!high->colors.colors_alloc) {
-                  high->colors.colors_alloc = TRUE;
-                  gdk_colormap_alloc_color(gtk_widget_get_colormap((GtkWidget *)cons),
-                                           &high->colors.foreground, FALSE, TRUE);
-                  gdk_colormap_alloc_color(gtk_widget_get_colormap((GtkWidget *)cons),
-                                           &high->colors.background, FALSE, TRUE);
-               }
                fgcolor = &high->colors.foreground;
                bgcolor = &high->colors.background;
                bold = high->colors.bold;
@@ -583,17 +569,11 @@ static void _sc_console_draw_region(ScConsole *cons, gint x, gint y, gint width,
             }
          } /* We be a cursor? */
 
-         /* Only update the GC if we absolutely have to */
-         if(oldfgcolor != fgcolor) {
-            oldfgcolor = fgcolor;
-            gdk_gc_set_foreground(fg_gc, fgcolor);
-         }
-         if(oldbgcolor != bgcolor) {
-            oldbgcolor = bgcolor;
-            gdk_gc_set_foreground(bg_gc, bgcolor);
-         }
+         /* Track color changes (for future optimization reference) */
+         oldfgcolor = fgcolor;
+         oldbgcolor = bgcolor;
 
-         _sc_console_draw_char(cons, fg_gc, bg_gc, bold,
+         _sc_console_draw_char(cons, fgcolor, bgcolor, bold,
                                cx - cons->text.viewx, cy - cons->text.viewy, *chptr);
       } /* Iterating thru X */
    } /* Iterate thru Y */
@@ -610,11 +590,7 @@ static void _sc_console_draw_region(ScConsole *cons, gint x, gint y, gint width,
    sc_drawbuf_queue_draw(SC_DRAWBUF(cons), x, y, width, height);
 
    /* Propagate the draw request to the active console. */
-   g_signal_emit_by_name(GTK_OBJECT(cons), "paint_region", &region, NULL);
-
-   /* Release the GC's */
-   g_object_unref(fg_gc);
-   g_object_unref(bg_gc);
+   g_signal_emit_by_name(G_OBJECT(cons), "paint_region", &region, NULL);
 
 }
 
@@ -642,8 +618,8 @@ static inline void _sc_console_vert_scroll_extents(ScConsole *cons,
  */
 
    *width  = ((_sc_console_char_width(cons) + 2) & ~1);
-   *height = GTK_WIDGET(cons)->allocation.height - 3 * _sc_console_char_height(cons);
-   *startx = GTK_WIDGET(cons)->allocation.width - 2 * _sc_console_char_width(cons) + 1;
+   *height = gtk_widget_get_allocated_height(GTK_WIDGET(cons)) - 3 * _sc_console_char_height(cons);
+   *startx = gtk_widget_get_allocated_width(GTK_WIDGET(cons)) - 2 * _sc_console_char_width(cons) + 1;
    *starty = _sc_console_char_height(cons) * 3 / 2;
    *arrowh = *width + 2;
 
@@ -693,7 +669,8 @@ static void _sc_console_draw_vert_scroll(ScConsole *cons) {
 
    GtkWidget *widget = (GtkWidget *)cons;
    GdkPoint points[3];
-   GdkGC *foreground;
+   cairo_t *cr;
+   GdkColor *c;
    gint arrowh;
    gint startx;
    gint starty;
@@ -708,30 +685,25 @@ static void _sc_console_draw_vert_scroll(ScConsole *cons) {
    if(sc_drawbuf_get_buffer(SC_DRAWBUF(cons)) == NULL) return;
    if(cons->style == CONSOLE_BORDERLESS) return;
 
-   /* Request a GC */
-   foreground = gdk_gc_new(widget->window);
+   cr = sc_drawbuf_get_cr(SC_DRAWBUF(cons));
 
    /* Determine vertical scrollbar extents */
    _sc_console_vert_scroll_extents(cons, &startx, &starty, &width, &height, &arrowh);
    _sc_console_vert_trough_extents(cons, starty, height, &pos, &size);
 
    /* erase any original bars */
-   gdk_gc_set_foreground(foreground, &cons->colors.backscroll);
-   gdk_draw_rectangle(sc_drawbuf_get_buffer(SC_DRAWBUF(cons)),
-                      foreground,
-                      TRUE,
-                      startx, starty - arrowh,
-                      width, height + 2 * arrowh);
+   c = &cons->colors.backscroll;
+   cairo_set_source_rgb(cr, c->red/65535.0, c->green/65535.0, c->blue/65535.0);
+   cairo_rectangle(cr, startx, starty - arrowh, width, height + 2 * arrowh);
+   cairo_fill(cr);
 
-   /* setup gc colors for bar */
-   gdk_gc_set_foreground(foreground, &cons->colors.forescroll);
+   /* setup color for bar */
+   c = &cons->colors.forescroll;
+   cairo_set_source_rgb(cr, c->red/65535.0, c->green/65535.0, c->blue/65535.0);
 
    /* Draw vertical slider */
-   gdk_draw_rectangle(sc_drawbuf_get_buffer(SC_DRAWBUF(cons)),
-                      foreground,
-                      TRUE,
-                      startx, pos,
-                      width, size);
+   cairo_rectangle(cr, startx, pos, width, size);
+   cairo_fill(cr);
 
    /* Determine if up-arrow is required */
    if(_sc_console_can_scroll_up(cons)) {
@@ -741,10 +713,11 @@ static void _sc_console_draw_vert_scroll(ScConsole *cons) {
       points[1].y = starty - 2;
       points[2].x = points[0].x + width / 2;
       points[2].y = starty - 2;
-      gdk_draw_polygon(sc_drawbuf_get_buffer(SC_DRAWBUF(cons)),
-                       foreground,
-                       TRUE,
-                       points, 3);
+      cairo_move_to(cr, points[0].x, points[0].y);
+      cairo_line_to(cr, points[1].x, points[1].y);
+      cairo_line_to(cr, points[2].x, points[2].y);
+      cairo_close_path(cr);
+      cairo_fill(cr);
    } /* Up arrow? */
 
    /* Determine if down-arrow is required */
@@ -755,14 +728,12 @@ static void _sc_console_draw_vert_scroll(ScConsole *cons) {
       points[1].y = starty + height + 2;
       points[2].x = points[0].x + width / 2;
       points[2].y = starty + height + 2;
-      gdk_draw_polygon(sc_drawbuf_get_buffer(SC_DRAWBUF(cons)),
-                       foreground,
-                       TRUE,
-                       points, 3);
+      cairo_move_to(cr, points[0].x, points[0].y);
+      cairo_line_to(cr, points[1].x, points[1].y);
+      cairo_line_to(cr, points[2].x, points[2].y);
+      cairo_close_path(cr);
+      cairo_fill(cr);
    } /* Down arrow? */
-
-   /* Release the GC's */
-   g_object_unref(foreground);
 
    /* Make sure everything is queued for draw */
    sc_drawbuf_queue_draw(SC_DRAWBUF(widget), startx, starty - arrowh,
@@ -778,36 +749,36 @@ static void _sc_console_draw_frame(ScConsole *cons) {
    the scrollbars for this console if they need to be displayed.  */
 
    GtkWidget *widget = (GtkWidget *)cons;
-   GdkGC *foreground;
-   GdkGC *background;
+   cairo_t *cr;
+   GdkColor *c;
+   gint alloc_width;
+   gint alloc_height;
 
    assert(IS_SC_CONSOLE(cons));
 
    /* Can we even draw yet? */
    if(sc_drawbuf_get_buffer(SC_DRAWBUF(cons)) == NULL) return;
 
-   /* Request a GC */
-   foreground = gdk_gc_new(widget->window);
-   background = gdk_gc_new(widget->window);
+   cr = sc_drawbuf_get_cr(SC_DRAWBUF(cons));
+   alloc_width  = gtk_widget_get_allocated_width(widget);
+   alloc_height = gtk_widget_get_allocated_height(widget);
 
-   /* setup gc colors */
-   gdk_gc_set_foreground(foreground, &cons->colors.foreground);
-   gdk_gc_set_foreground(background, &cons->colors.background);
+   /* Clear the screen with background color */
+   c = &cons->colors.background;
+   cairo_set_source_rgb(cr, c->red/65535.0, c->green/65535.0, c->blue/65535.0);
+   cairo_rectangle(cr, 0, 0, alloc_width, alloc_height);
+   cairo_fill(cr);
 
-   /* Clear the screen; draw window border if appropriate */
-   gdk_draw_rectangle(sc_drawbuf_get_buffer(SC_DRAWBUF(cons)),
-                      background,
-                      TRUE,
-                      0, 0,
-                      widget->allocation.width, widget->allocation.height);
    if(cons->style != CONSOLE_BORDERLESS) {
       /* Draw a border as well... */
-      gdk_draw_rectangle(sc_drawbuf_get_buffer(SC_DRAWBUF(cons)),
-                         foreground,
-                         FALSE,
-                         _sc_console_char_width(cons) - 4, _sc_console_char_height(cons) / 2 - 2,
-                         widget->allocation.width - 2 * _sc_console_char_width(cons) + 8,
-                         widget->allocation.height - _sc_console_char_height(cons) + 4);
+      c = &cons->colors.foreground;
+      cairo_set_source_rgb(cr, c->red/65535.0, c->green/65535.0, c->blue/65535.0);
+      cairo_rectangle(cr,
+                      _sc_console_char_width(cons) - 4,
+                      _sc_console_char_height(cons) / 2 - 2,
+                      alloc_width - 2 * _sc_console_char_width(cons) + 8,
+                      alloc_height - _sc_console_char_height(cons) + 4);
+      cairo_stroke(cr);
 
       /* Did we need scrollers? */
       if(cons->text.scrollx) {
@@ -817,10 +788,6 @@ static void _sc_console_draw_frame(ScConsole *cons) {
          _sc_console_draw_vert_scroll(cons);
       } /* vertical scrollbar */
    } /* Draw the window border? */
-
-   /* Release the GC's */
-   g_object_unref(foreground);
-   g_object_unref(background);
 
 }
 
@@ -838,26 +805,6 @@ static void _sc_console_draw_all(ScConsole *cons) {
    /* Can we even draw yet? */
    if(sc_drawbuf_get_buffer(SC_DRAWBUF(cons)) == NULL) return;
 
-   /* Setup default foreground, background colors */
-   /* (make sure to allocate them if not done already) */
-   if(!cons->colors.colors_alloc) {
-      cons->colors.colors_alloc = TRUE;
-      gdk_colormap_alloc_color(gtk_widget_get_colormap(widget), &cons->colors.foreground, FALSE, TRUE);
-      gdk_colormap_alloc_color(gtk_widget_get_colormap(widget), &cons->colors.background, FALSE, TRUE);
-      gdk_colormap_alloc_color(gtk_widget_get_colormap(widget), &cons->colors.forecursor, FALSE, TRUE);
-      gdk_colormap_alloc_color(gtk_widget_get_colormap(widget), &cons->colors.backcursor, FALSE, TRUE);
-      gdk_colormap_alloc_color(gtk_widget_get_colormap(widget), &cons->colors.foreshadow, FALSE, TRUE);
-      gdk_colormap_alloc_color(gtk_widget_get_colormap(widget), &cons->colors.backshadow, FALSE, TRUE);
-      gdk_colormap_alloc_color(gtk_widget_get_colormap(widget), &cons->colors.forescroll, FALSE, TRUE);
-      gdk_colormap_alloc_color(gtk_widget_get_colormap(widget), &cons->colors.backscroll, FALSE, TRUE);
-      gdk_colormap_alloc_color(gtk_widget_get_colormap(widget), &cons->colors.forelight, FALSE, TRUE);
-      gdk_colormap_alloc_color(gtk_widget_get_colormap(widget), &cons->colors.backlight, FALSE, TRUE);
-      gdk_colormap_alloc_color(gtk_widget_get_colormap(widget), &cons->colors.foredisabled, FALSE, TRUE);
-      gdk_colormap_alloc_color(gtk_widget_get_colormap(widget), &cons->colors.backdisabled, FALSE, TRUE);
-      gdk_colormap_alloc_color(gtk_widget_get_colormap(widget), &cons->colors.forestandard, FALSE, TRUE);
-      gdk_colormap_alloc_color(gtk_widget_get_colormap(widget), &cons->colors.backstandard, FALSE, TRUE);
-   }
-
    /* Redraw the window frame */
    _sc_console_draw_frame(cons);
 
@@ -865,7 +812,9 @@ static void _sc_console_draw_all(ScConsole *cons) {
    _sc_console_draw_region(cons, 0, 0, sc_console_get_width(cons), sc_console_get_height(cons));
 
    /* Make sure everything is queued for draw */
-   sc_drawbuf_queue_draw(SC_DRAWBUF(widget), 0, 0, widget->allocation.width, widget->allocation.height);
+   sc_drawbuf_queue_draw(SC_DRAWBUF(widget), 0, 0,
+                         gtk_widget_get_allocated_width(widget),
+                         gtk_widget_get_allocated_height(widget));
 
 }
 
@@ -1066,8 +1015,8 @@ static gint _sc_console_key_press(GtkWidget *widget, GdkEventKey *event) {
    } /* Signal handler available? */
 
    switch(event->keyval) {
-      case GDK_Page_Up:
-      case GDK_KP_Page_Up:
+      case GDK_KEY_Page_Up:
+      case GDK_KEY_KP_Page_Up:
          if(_sc_console_can_scroll_up(cons)) {
             cons->text.viewy -= cons->text.viewh;
             if(cons->text.viewy < 0) cons->text.viewy = 0;
@@ -1076,8 +1025,8 @@ static gint _sc_console_key_press(GtkWidget *widget, GdkEventKey *event) {
          }
          return(TRUE);
 
-      case GDK_Page_Down:
-      case GDK_KP_Page_Down:
+      case GDK_KEY_Page_Down:
+      case GDK_KEY_KP_Page_Down:
          if(_sc_console_can_scroll_down(cons)) {
             cons->text.viewy += cons->text.viewh;
             if(cons->text.viewy > sc_console_get_height(cons) - cons->text.viewh) {
@@ -1109,10 +1058,10 @@ static gint _sc_console_key_release(GtkWidget *widget, GdkEventKey *event) {
    } /* Signal handler available? */
 
    switch(event->keyval) {
-      case GDK_Page_Up:
-      case GDK_KP_Page_Up:
-      case GDK_Page_Down:
-      case GDK_KP_Page_Down:
+      case GDK_KEY_Page_Up:
+      case GDK_KEY_KP_Page_Up:
+      case GDK_KEY_Page_Down:
+      case GDK_KEY_KP_Page_Down:
          return(TRUE);
    } /* Search for special keys */
 
@@ -1131,7 +1080,7 @@ static void _sc_console_class_init(ScConsoleClass *klass) {
 /* sc_console_class_init
    Initialise the console class.  */
 
-   GtkObjectClass *object_class = (GtkObjectClass *)klass;
+   GObjectClass *object_class = (GObjectClass *)klass;
 
    /* Determine parent class */
    parent_class = g_type_class_peek(sc_drawbuf_get_type());
@@ -1154,7 +1103,7 @@ static void _sc_console_class_init(ScConsoleClass *klass) {
 
    /* Attach default signal handlers */
    klass->paint_region                          = NULL;
-   GTK_OBJECT_CLASS(klass)->destroy             = _sc_console_destroy;
+   GTK_WIDGET_CLASS(klass)->destroy             = _sc_console_destroy;
    GTK_WIDGET_CLASS(klass)->configure_event     = _sc_console_configure;
    GTK_WIDGET_CLASS(klass)->focus_in_event      = _sc_console_draw_focus;
    GTK_WIDGET_CLASS(klass)->focus_out_event     = _sc_console_undraw_focus;
@@ -1312,7 +1261,7 @@ static inline void _sc_console_init_dimensions(ScConsole *cons) {
 
 
 void sc_console_init(ScConsole *cons, gint x, gint y, gint width, gint height, ScConsoleStyle style,
-                     GdkFont *font, GdkFont *boldfont) {
+                     PangoFontDescription *font, PangoFontDescription *boldfont) {
 /* sc_console_init
    Initialize a console.  */
 
@@ -1359,7 +1308,7 @@ void sc_console_clear(ScConsole *cons) {
 
 
 GtkWidget *sc_console_new(gint x, gint y, gint width, gint height, ScConsoleStyle style,
-                          GdkFont *font, GdkFont *boldfont) {
+                          PangoFontDescription *font, PangoFontDescription *boldfont) {
 /* sc_console_new
    Create a new console.  */
 
@@ -1368,7 +1317,7 @@ GtkWidget *sc_console_new(gint x, gint y, gint width, gint height, ScConsoleStyl
    g_return_val_if_fail(x >= 0 && y >= 0, NULL);
    g_return_val_if_fail(width > 0 && height > 0, NULL);
    g_return_val_if_fail(font != NULL && boldfont != NULL, NULL);
-   
+
    cons = g_object_new(sc_console_get_type(), NULL);
    g_return_val_if_fail(cons != NULL, NULL);
 
@@ -1459,7 +1408,7 @@ void sc_console_write_line_wrap(ScConsole *cons, gint x, gint y, const char *lin
    line overflows the width of the text buffer, then it is continued
    on the next line starting in column 0.  If the text overflows the
    height of the text buffer in this manner, then it will be truncated.
-   
+
    It is considered an error if x < 0 or y < 0.  If x is beyond the
    width of the line, then printing will start on the next line.  */
 
@@ -1467,7 +1416,7 @@ void sc_console_write_line_wrap(ScConsole *cons, gint x, gint y, const char *lin
    gint height;
    gint minx;
    char *p;
-   
+
    g_return_if_fail(IS_SC_CONSOLE(cons));
    g_return_if_fail(line != NULL);
    g_return_if_fail(x >= 0 && y >= 0);
@@ -1515,10 +1464,10 @@ static void _sc_console_lock_view_to_cursor(ScConsole *cons, ScConsoleCursor *cu
    if necessary.  */
 
    gboolean needrewrite = FALSE;
-   
+
    assert(IS_SC_CONSOLE(cons));
    assert(cursor != NULL);
-   
+
    if(cursor->x < cons->text.viewx) {
       cons->text.viewx = cursor->x;
       _sc_console_draw_horiz_scroll(cons);
@@ -1643,15 +1592,15 @@ void sc_console_set_cursor_highlighted(ScConsole *cons, gboolean highlighted) {
 
 
 
-void sc_console_set_fonts(ScConsole *cons, GdkFont *font, GdkFont *boldfont) {
+void sc_console_set_fonts(ScConsole *cons, PangoFontDescription *font, PangoFontDescription *boldfont) {
 /* sc_console_set_fonts
    Update the fonts installed for this console.  Neither font pointer
-   should be NULL.  The currently-installed fonts will be unreferenced,
-   the new fonts will have their reference counts incremented by 1, and
-   the entire console will be resized, repositioned, and redrawn.  */
+   should be NULL.  The currently-installed fonts will be freed,
+   copies of the new fonts will be installed, and the entire console
+   will be resized, repositioned, and redrawn.  */
 
    #if SC_GTK_DEBUG_GTK
-      printf("sc_console_set_fonts:  installing new console fonts for %p:  %p %p\n", 
+      printf("sc_console_set_fonts:  installing new console fonts for %p:  %p %p\n",
              (void *)cons, (void *)font, (void *)boldfont);
    #endif /* SC_GTK_DEBUG_GTK */
 
@@ -1662,7 +1611,7 @@ void sc_console_set_fonts(ScConsole *cons, GdkFont *font, GdkFont *boldfont) {
    _sc_console_init_dimensions(cons);
 
    #if SC_GTK_DEBUG_GTK
-      printf("sc_console_set_fonts:  finished installing new console fonts for %p\n", 
+      printf("sc_console_set_fonts:  finished installing new console fonts for %p\n",
              (void *)cons);
    #endif /* SC_GTK_DEBUG_GTK */
 
@@ -1751,11 +1700,11 @@ void sc_console_highlight_attach(ScConsole *cons, GdkColor *fg, GdkColor *bg, gb
    then the default console text colours will be used.  Highlights are
    used to change the appearance of text in a particular region; they do
    not alter the text itself, however.
-   
+
    The coordinates are relative to the TEXT BUFFER, not the viewport.  */
 
    ScConsoleHighlight *high;
-   
+
    g_return_if_fail(IS_SC_CONSOLE(cons));
 
    high = (ScConsoleHighlight *)malloc(sizeof(ScConsoleHighlight));
@@ -1810,7 +1759,7 @@ void sc_console_highlight_attach_disabled(ScConsole *cons, gint x, gint y, gint 
 
 gboolean sc_console_highlight_detach(ScConsole *cons) {
 /* sc_console_highlight_detach
-   Remove the most recently attached highlight on this console.  
+   Remove the most recently attached highlight on this console.
    Returns FALSE if there were no consoles available for deletion.  */
 
    ScConsoleHighlight *high;  /* Highlight to delete */
@@ -1819,7 +1768,7 @@ gboolean sc_console_highlight_detach(ScConsole *cons) {
    gint y;                    /* Y position of highlight */
    gint width;                /* Width of highlight */
    gint height;               /* Height of highlight */
-   
+
    g_return_val_if_fail(IS_SC_CONSOLE(cons), FALSE);
 
    /* Is there anything to delete? */

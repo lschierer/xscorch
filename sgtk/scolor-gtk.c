@@ -33,7 +33,7 @@
 
 
 
-static inline gboolean _sc_colormap_set_gtk(sc_window_gtk *w, GdkColor *c, double r, double g, double b) {
+static inline gboolean _sc_colormap_set_gtk(__libj_unused sc_window_gtk *w, GdkColor *c, double r, double g, double b) {
 
    if(r < 0) r = 0;
    if(g < 0) g = 0;
@@ -41,11 +41,11 @@ static inline gboolean _sc_colormap_set_gtk(sc_window_gtk *w, GdkColor *c, doubl
    if(r > 1) r = 1;
    if(g > 1) g = 1;
    if(b > 1) b = 1;
-   
-   c->red   = r * 0xffff;
-   c->green = g * 0xffff;
-   c->blue  = b * 0xffff;
-   return(gdk_colormap_alloc_color(gtk_widget_get_colormap(w->app), c, FALSE, TRUE));
+
+   c->red   = (guint16)(r * 0xffff);
+   c->green = (guint16)(g * 0xffff);
+   c->blue  = (guint16)(b * 0xffff);
+   return(TRUE);
 
 }
 
@@ -81,17 +81,13 @@ static inline void _sc_colormap_gradient_gtk(sc_window_gtk *w, int gradidx, doub
    dg = (fg - g) / SC_MAX_GRADIENT_SIZE;
    db = (fb - b) / SC_MAX_GRADIENT_SIZE;
 
-   for(count = 0, i = 0; i < SC_MAX_GRADIENT_SIZE; ++i) {
-      if(_sc_colormap_set_gtk(w, &w->colormap->gradient[gradidx][count], r, g, b)) { 
-         if(count == 0 || w->colormap->gradient[gradidx][count].pixel != w->colormap->gradient[gradidx][count - 1].pixel) {
-            ++count;
-         }
-      }
+   for(count = 0; count < SC_MAX_GRADIENT_SIZE; ++count) {
+      _sc_colormap_set_gtk(w, &w->colormap->gradient[gradidx][count], r, g, b);
       r += dr;
       g += dg;
       b += db;
    }
-   w->c->colors->gradsize[gradidx] = count;
+   w->c->colors->gradsize[gradidx] = SC_MAX_GRADIENT_SIZE;
 
 }
 

@@ -50,7 +50,7 @@ static void _sc_link_combo_set(ScLinkCombo *combo) {
    i = gtk_combo_box_get_active(GTK_COMBO_BOX(combo));
    if(i >= 0) {
       if(combo_data->value != NULL) *combo_data->value = i;
-      g_signal_emit(GTK_OBJECT(combo), _sc_link_combo_signals[MODIFIED_SIGNAL], 0);
+      g_signal_emit(G_OBJECT(combo), _sc_link_combo_signals[MODIFIED_SIGNAL], 0);
    }
 
 }
@@ -59,7 +59,7 @@ static void _sc_link_combo_set(ScLinkCombo *combo) {
 
 static void _sc_link_combo_class_init(ScLinkComboClass *klass) {
 
-   GtkObjectClass *object_class = (GtkObjectClass *)klass;
+   GObjectClass *object_class = (GObjectClass *)klass;
 
    _sc_link_combo_signals[MODIFIED_SIGNAL] =
       g_signal_new("modified",                     /* Signal name */

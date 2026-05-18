@@ -160,8 +160,8 @@ void sc_window_main_menu(sc_window *w_) {
    sc_window_paint(w_, 0, 0, w->c->fieldwidth, w->c->fieldheight,
                    SC_REGENERATE_LAND | SC_REDRAW_LAND);
    sc_pixmap_copy_gtk(sc_display_get_buffer(SC_DISPLAY(w->screen)),
-                      sc_display_get_gc(SC_DISPLAY(w->screen)),
-                      w->logo, w->logo_m,
+                      sc_display_get_cr(SC_DISPLAY(w->screen)),
+                      w->logo,
                       w->c->fieldwidth - sc_pixmap_width_gtk(w->logo),
                       w->c->fieldheight - sc_pixmap_height_gtk(w->logo));
 

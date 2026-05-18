@@ -27,7 +27,6 @@
 
 #include <sgtk.h>
 #include <gtk/gtk.h>
-#include <gtk/gtkfixed.h>
 #include <sdrawbuf.h>
 #include <sconsole.h>
 
@@ -54,14 +53,14 @@ GtkWidget *sc_display_new(gint width, gint height);
 
 #define sc_display_get_drawbuf(dpy)    (dpy->draw)
 #define sc_display_get_buffer(dpy)     sc_drawbuf_get_buffer(SC_DRAWBUF(sc_display_get_drawbuf(dpy)))
-#define sc_display_get_gc(dpy)         sc_drawbuf_get_gc(SC_DRAWBUF(sc_display_get_drawbuf(dpy)))
+#define sc_display_get_cr(dpy)         sc_drawbuf_get_cr(SC_DRAWBUF(sc_display_get_drawbuf(dpy)))
 
 
 void     sc_display_queue_draw(ScDisplay *dpy, gint x, gint y, gint width, gint height);
 void     sc_display_console_attach(ScDisplay *dpy, ScConsole *cons);
 gboolean sc_display_console_detach(ScDisplay *dpy);
 void     sc_display_console_detach_all(ScDisplay *dpy);
-void     sc_display_console_set_fonts(ScDisplay *dpy, GdkFont *font, GdkFont *boldfont);
+void     sc_display_console_set_fonts(ScDisplay *dpy, PangoFontDescription *font, PangoFontDescription *boldfont);
 
 
 #endif /* __sdisplay_h_included */

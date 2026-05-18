@@ -83,7 +83,7 @@ typedef struct _ScActiveConsoleClass {
 #define  IS_SC_GADGET(obj)              G_TYPE_CHECK_INSTANCE_TYPE(obj, sc_gadget_get_type())
 
 typedef struct _ScGadget {
-   GtkObject object;
+   GObject parent_instance;
    ScActiveConsole *console;
    ScActiveConsoleSpot *spot;
    gint x;
@@ -94,7 +94,7 @@ typedef struct _ScGadget {
 
 
 typedef struct _ScGadgetClass {
-   GtkObjectClass parent_class;
+   GObjectClass parent_class;
    void     (*paint)(ScGadget *gadget);
    gboolean (*button_press_spot)(ScGadget *gadget, GdkEventButton *event);
    gboolean (*button_release_spot)(ScGadget *gadget, GdkEventButton *event);
@@ -111,9 +111,9 @@ typedef struct _ScGadgetClass {
 
 GType sc_active_console_get_type(void);
 GtkWidget *sc_active_console_new(gint x, gint y, gint width, gint height, ScConsoleStyle style,
-                                 GdkFont *font, GdkFont *boldfont);
+                                 PangoFontDescription *font, PangoFontDescription *boldfont);
 void sc_active_console_init(ScActiveConsole *cons, gint x, gint y, gint width, gint height, ScConsoleStyle style,
-                            GdkFont *font, GdkFont *boldfont);
+                            PangoFontDescription *font, PangoFontDescription *boldfont);
 void sc_active_console_set_allow_keyboard(ScActiveConsole *cons, gboolean allowkeyboard);
 
 

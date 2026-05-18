@@ -98,19 +98,22 @@ void sc_display_console_attach(ScDisplay *dpy, ScConsole *cons) {
 
 gboolean sc_display_console_detach(ScDisplay *dpy) {
 
-   GtkFixedChild *child;
    GtkWidget *cwidget;
    GList *children;
+   GList *last;
 
    g_return_val_if_fail(IS_SC_DISPLAY(dpy), FALSE);
 
-   children = GTK_FIXED(dpy)->children;
+   children = gtk_container_get_children(GTK_CONTAINER(dpy));
 
    /* The first entry is the basic drawbuf; never delete it.  */
-   if(children == NULL || children->next == NULL) return(FALSE);
-   while(children->next != NULL) children = children->next;
-   child = children->data;
-   cwidget = child->widget;
+   if(children == NULL || children->next == NULL) {
+      g_list_free(children);
+      return(FALSE);
+   }
+   last = g_list_last(children);
+   cwidget = GTK_WIDGET(last->data);
+   g_list_free(children);
    g_return_val_if_fail(IS_SC_CONSOLE(cwidget), FALSE);
 
    gtk_container_remove(GTK_CONTAINER(dpy), cwidget);
@@ -140,41 +143,42 @@ void sc_display_queue_draw(ScDisplay *dpy, gint x, gint y, gint width, gint heig
 
 
 
-void sc_display_console_set_fonts(ScDisplay *dpy, GdkFont *font, GdkFont *boldfont) {
+void sc_display_console_set_fonts(ScDisplay *dpy, PangoFontDescription *font, PangoFontDescription *boldfont) {
 
-   GtkFixedChild *child;
    GtkWidget *cwidget;
    ScConsole *cons;
    GList *children;
+   GList *iter;
 
    #if SC_GTK_DEBUG_GTK
       printf("sc_display_console_set_fonts:  installing new console fonts for %p\n", (void *)dpy);
    #endif /* SC_GTK_DEBUG_GTK */
-            
+
    g_return_if_fail(IS_SC_DISPLAY(dpy));
    g_return_if_fail(font != NULL && boldfont != NULL);
 
-   children = GTK_FIXED(dpy)->children;
+   children = gtk_container_get_children(GTK_CONTAINER(dpy));
 
    if(children == NULL) return;
-   children = children->next;
-   while(children != NULL) {
-      child = children->data;
-      cwidget = child->widget;
+   /* Skip the first child (the drawbuf itself) */
+   iter = children->next;
+   while(iter != NULL) {
+      cwidget = GTK_WIDGET(iter->data);
       g_return_if_fail(IS_SC_CONSOLE(cwidget));
       cons = SC_CONSOLE(cwidget);
       #if SC_GTK_DEBUG_GTK
-         printf("sc_display_console_set_fonts:  installing new console fonts for %p, registered console %p\n", 
+         printf("sc_display_console_set_fonts:  installing new console fonts for %p, registered console %p\n",
                 (void *)dpy, (void *)cons);
       #endif /* SC_GTK_DEBUG_GTK */
 
       sc_console_set_fonts(cons, font, boldfont);
-      /* The font update will automatically adjust the console's 
+      /* The font update will automatically adjust the console's
          requested X/Y position, but we still need to tell the
          container to adjust the position.  */
       gtk_fixed_move(GTK_FIXED(dpy), cwidget, cons->req_alloc.x, cons->req_alloc.y);
-      children = children->next;
+      iter = iter->next;
    }
+   g_list_free(children);
 
    #if SC_GTK_DEBUG_GTK
       printf("sc_display_console_set_fonts:  finished installing new console fonts for %p\n", (void *)dpy);

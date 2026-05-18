@@ -31,6 +31,8 @@
 #include <sconsole.h>
 #include <sgame/swindow.h>
 #include <gtk/gtk.h>
+#include <cairo/cairo.h>
+#include <pango/pango.h>
 
 
 /* Forward structure declarations */
@@ -56,18 +58,16 @@ int buffer_a[1024];
    gboolean ready;                        /* True when ready to play */
    gboolean exposed;                      /* True once win exposed */
    gboolean statenabled;                  /* True if status pane is enabled */
-   GdkFont *fixed_font;                   /* Normal fixed-width font */
-   GdkFont *italic_fixed_font;            /* Italic fixed-width font */
-   GdkFont *bold_fixed_font;              /* Boldface fixed-width font */
+   PangoFontDescription *fixed_font;      /* Normal fixed-width font */
+   PangoFontDescription *italic_fixed_font; /* Italic fixed-width font */
+   PangoFontDescription *bold_fixed_font; /* Boldface fixed-width font */
    GtkWidget *app;                        /* GtkWindow main window */
    GtkWidget *mainmenu;                   /* Main menu bar */
    GtkWidget *status;                     /* Status widget */
    GtkWidget *screen;                     /* Drawing screen */
-   GdkPixmap *landbuffer;                 /* Offscreen pix for land */
-   GdkPixmap *logo;                       /* Offscreen game logo */
-   GdkBitmap *logo_m;                     /* Offscreen logo mask */
-   GdkPixmap *icon;                       /* Offscreen game icon */
-   GdkBitmap *icon_m;                     /* Offscreen icon mask */
+   cairo_surface_t *landbuffer;           /* Offscreen surface for land */
+   cairo_surface_t *logo;                 /* Offscreen game logo */
+   GdkPixbuf *icon_pixbuf;               /* Game icon pixbuf */
    GtkWidget *border;                     /* Border of playing field */
    GtkWidget *chatbox;                    /* Chatbox for network mode */
    GtkWidget *net_server;
