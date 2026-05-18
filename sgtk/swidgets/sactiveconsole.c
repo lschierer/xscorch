@@ -165,11 +165,11 @@ static void _sc_marshal_BOOLEAN__POINTER_POINTER(GClosure *closure, GValue *retu
 
 
 
-static void _sc_active_console_destroy(GtkObject *obj) {
+static void _sc_active_console_destroy(GtkWidget *widget) {
 /* sc_active_console_destroy
    Destroys the active console passed in.  */
 
-   ScActiveConsole *cons = SC_ACTIVE_CONSOLE(obj);
+   ScActiveConsole *cons = SC_ACTIVE_CONSOLE(widget);
    GList *cur = cons->spots;
 
    while(cur != NULL) {
@@ -183,8 +183,8 @@ static void _sc_active_console_destroy(GtkObject *obj) {
    cons->spots = NULL;
 
    /* Call parent handler? */
-   if(GTK_OBJECT_CLASS(parent_class)->destroy != NULL) {
-      GTK_OBJECT_CLASS(parent_class)->destroy(obj);
+   if(GTK_WIDGET_CLASS(parent_class)->destroy != NULL) {
+      GTK_WIDGET_CLASS(parent_class)->destroy(widget);
    } /* Parent handler */
 
 }
@@ -234,14 +234,14 @@ static inline gboolean _sc_active_console_emit_event(ScActiveConsole *cons, int 
    /* Check to see if the spot includes a gadget. */
    if(spot->gadget != NULL) {
       assert(IS_SC_GADGET(spot->gadget));
-      g_signal_emit_by_name(GTK_OBJECT(spot->gadget), signalname, event, &rtnval);
+      g_signal_emit_by_name(G_OBJECT(spot->gadget), signalname, event, &rtnval);
       if(rtnval) {
          return(TRUE);
       }
    }
    
    /* Emit the select-spot signal to the console itself */
-   g_signal_emit(GTK_OBJECT(cons), _sc_active_console_signals[signalid], 0, 
+   g_signal_emit(G_OBJECT(cons), _sc_active_console_signals[signalid], 0, 
                  spot, event, &rtnval);
    if(rtnval) {
       return(TRUE);
@@ -289,14 +289,14 @@ static inline gboolean _sc_active_console_emit(ScActiveConsole *cons, int signal
    /* Check to see if the spot includes a gadget. */
    if(spot->gadget != NULL) {
       assert(IS_SC_GADGET(spot->gadget));
-      g_signal_emit_by_name(GTK_OBJECT(spot->gadget), signalname, &rtnval);
+      g_signal_emit_by_name(G_OBJECT(spot->gadget), signalname, &rtnval);
       if(rtnval) {
          return(TRUE);
       }
    }
    
    /* Emit the select-spot signal to the console itself */
-   g_signal_emit(GTK_OBJECT(cons), _sc_active_console_signals[signalid], 0, 
+   g_signal_emit(G_OBJECT(cons), _sc_active_console_signals[signalid], 0, 
                  spot, &rtnval);
    if(rtnval) {
       return(TRUE);
@@ -396,7 +396,7 @@ static void _sc_active_console_paint_region(ScConsole *_cons, GdkRectangle *boun
             #if SC_GTK_DEBUG_PAINT
                SC_DEBUG_MSG("found a gadget even!  %p", spot->gadget);
             #endif /* debug */
-            g_signal_emit_by_name(GTK_OBJECT(spot->gadget), "paint", NULL, NULL);
+            g_signal_emit_by_name(G_OBJECT(spot->gadget), "paint", NULL, NULL);
          }
       }
       cur = cur->next;
@@ -495,8 +495,8 @@ static gint _sc_active_console_key_press(GtkWidget *widget, GdkEventKey *event) 
    #endif /* debug */
 
    switch(event->keyval) {
-      case GDK_Up:
-      case GDK_KP_Up:
+      case GDK_KEY_Up:
+      case GDK_KEY_KP_Up:
          _sc_active_console_leave_spot(cons, FALSE);
          cons->current = cons->current->prev;
          if(cons->current == NULL) {
@@ -507,8 +507,8 @@ static gint _sc_active_console_key_press(GtkWidget *widget, GdkEventKey *event) 
          sc_console_set_cursor(SC_CONSOLE(cons), spot->x, spot->y, spot->width, spot->height);
          return(TRUE);
 
-      case GDK_Down:
-      case GDK_KP_Down:
+      case GDK_KEY_Down:
+      case GDK_KEY_KP_Down:
          _sc_active_console_leave_spot(cons, FALSE);
          cons->current = cons->current->next;
          if(cons->current == NULL) {
@@ -524,8 +524,8 @@ static gint _sc_active_console_key_press(GtkWidget *widget, GdkEventKey *event) 
          logic here, and the tank dialogue gets really messed up if we have
          processing for Return here.  */
 
-      case GDK_space:
-      case GDK_KP_Space:
+      case GDK_KEY_space:
+      case GDK_KEY_KP_Space:
          #if SC_GTK_DEBUG_GTK && __debugging_macros
             SC_DEBUG_ENTER("emitting %d", _sc_active_console_signals[SELECT_SPOT_SIGNAL]);
          #endif /* debug */
@@ -576,12 +576,12 @@ static gint _sc_active_console_key_release(GtkWidget *widget, GdkEventKey *event
    #endif /* debug */
 
    switch(event->keyval) {
-      case GDK_Up:
-      case GDK_KP_Up:
-      case GDK_Down:
-      case GDK_KP_Down:
-      case GDK_space:
-      case GDK_KP_Space:
+      case GDK_KEY_Up:
+      case GDK_KEY_KP_Up:
+      case GDK_KEY_Down:
+      case GDK_KEY_KP_Down:
+      case GDK_KEY_space:
+      case GDK_KEY_KP_Space:
          #if SC_GTK_DEBUG_GTK && __debugging_macros
             SC_DEBUG_ENTER("ignored%s", "");
          #endif /* debug */
@@ -1011,7 +1011,7 @@ static gint _sc_active_console_button_release(GtkWidget *widget, GdkEventButton 
 
 static void _sc_active_console_class_init(ScActiveConsoleClass *klass) {
 
-   GtkObjectClass *object_class = (GtkObjectClass *)klass;
+   GObjectClass *object_class = (GObjectClass *)klass;
 
    parent_class = g_type_class_peek(sc_console_get_type());
 
@@ -1149,7 +1149,7 @@ static void _sc_active_console_class_init(ScActiveConsoleClass *klass) {
    GTK_WIDGET_CLASS(klass)->button_release_event= _sc_active_console_button_release;
    GTK_WIDGET_CLASS(klass)->focus_in_event      = _sc_active_console_focus_in;
    GTK_WIDGET_CLASS(klass)->focus_out_event     = _sc_active_console_focus_out;
-   GTK_OBJECT_CLASS(klass)->destroy             = _sc_active_console_destroy;
+   GTK_WIDGET_CLASS(klass)->destroy             = _sc_active_console_destroy;
 
 }
 
@@ -1157,9 +1157,9 @@ static void _sc_active_console_class_init(ScActiveConsoleClass *klass) {
 
 static void _sc_gadget_class_init(ScGadgetClass *klass) {
 
-   GtkObjectClass *object_class = (GtkObjectClass *)klass;
+   GObjectClass *object_class = (GObjectClass *)klass;
 
-   gadget_parent_class = g_type_class_peek(gtk_object_get_type());
+   gadget_parent_class = g_type_class_peek(G_TYPE_OBJECT);
 
    _sc_gadget_signals[G_PAINT_SIGNAL] =
       g_signal_new("paint",                        /* Signal name */
@@ -1350,7 +1350,7 @@ GType sc_gadget_get_type(void) {
                                           /* Instance initializer */
          NULL                             /* Value table */
       };
-      sc_gadget_type = g_type_register_static(gtk_object_get_type(), "ScGadget",
+      sc_gadget_type = g_type_register_static(G_TYPE_OBJECT, "ScGadget",
                                               &sc_gadget_info, 0);
    }
 
@@ -1361,7 +1361,7 @@ GType sc_gadget_get_type(void) {
 
 
 void sc_active_console_init(ScActiveConsole *cons, gint x, gint y, gint width, gint height, ScConsoleStyle style,
-                            GdkFont *font, GdkFont *boldfont) {
+                            PangoFontDescription *font, PangoFontDescription *boldfont) {
 
    cons->current = NULL;
    sc_console_init(SC_CONSOLE(cons), x, y, width, height, style, font, boldfont);
@@ -1373,7 +1373,7 @@ void sc_active_console_init(ScActiveConsole *cons, gint x, gint y, gint width, g
 
 
 GtkWidget *sc_active_console_new(gint x, gint y, gint width, gint height, ScConsoleStyle style,
-                                 GdkFont *font, GdkFont *boldfont) {
+                                 PangoFontDescription *font, PangoFontDescription *boldfont) {
 
    ScActiveConsole *cons;
 
@@ -1489,7 +1489,7 @@ gboolean sc_active_console_detach_spot(ScActiveConsole *cons) {
 
    /* Release any associated gadget */
    if(spot->gadget != NULL) {
-      g_object_unref(GTK_OBJECT(spot->gadget));
+      g_object_unref(G_OBJECT(spot->gadget));
       spot->gadget = NULL;
    }
 

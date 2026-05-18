@@ -1,0 +1,4 @@
+_build/
+_stage/
+xscorch-*.tar.gz
+xscorch-*/

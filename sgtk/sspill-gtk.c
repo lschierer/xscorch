@@ -146,8 +146,7 @@ static void _sc_window_draw_flames_gtk(sc_window_gtk *w, const int *xlist,
                                        const int *ylist, int size) {
 /* sc_window_draw_flames_gtk */
 
-   GdkPixmap *buffer;
-   GdkGC *gc;
+   cairo_t *cr;
    int *flamemap;
    int *heights;
    int *heightp;
@@ -160,14 +159,14 @@ static void _sc_window_draw_flames_gtk(sc_window_gtk *w, const int *xlist,
    int py;
    int x;
    int y;
+   int tidx;
+   GdkColor *fc;
 
    heights = _sc_window_height_map_gtk(w->c, xlist, ylist, size);
    if(heights == NULL) return;
 
    height = w->c->fieldheight;
-   buffer = sc_display_get_buffer(SC_DISPLAY(w->screen));
-   gc = sc_display_get_gc(SC_DISPLAY(w->screen));
-   gdk_gc_set_foreground(gc, &w->colormap->napalm);
+   cr = sc_display_get_cr(SC_DISPLAY(w->screen));
 
    boundx1 = w->c->fieldwidth;
    boundx2 = w->c->fieldheight;
@@ -181,9 +180,12 @@ static void _sc_window_draw_flames_gtk(sc_window_gtk *w, const int *xlist,
          if(flamemap != NULL) {
             for(py = 0; py < SC_NAPALM_FLAME_RAD * 2 + 1; ++py) {
                for(px = 0; px < SC_NAPALM_FLAME_RAD * 2 + 1; ++px) {
-                  if(*(flamemap + py * (SC_NAPALM_FLAME_RAD * 2 + 1) + px) >= 0) {
-                     gdk_gc_set_foreground(gc, &w->colormap->gradient[SC_GRAD_FLAMES][*(flamemap + py * (SC_NAPALM_FLAME_RAD * 2 + 1) + px)]);
-                     gdk_draw_point(buffer, gc, x + px - SC_NAPALM_FLAME_RAD, height - y - py);
+                  tidx = *(flamemap + py * (SC_NAPALM_FLAME_RAD * 2 + 1) + px);
+                  if(tidx >= 0) {
+                     fc = &w->colormap->gradient[SC_GRAD_FLAMES][tidx];
+                     cairo_set_source_rgb(cr, fc->red/65535.0, fc->green/65535.0, fc->blue/65535.0);
+                     cairo_rectangle(cr, x + px - SC_NAPALM_FLAME_RAD, height - y - py, 1, 1);
+                     cairo_fill(cr);
                   }
                }
             }
@@ -211,8 +213,7 @@ void sc_window_draw_napalm_frame(sc_window *w_, const int *xlist,
 /* sc_window_draw_napalm_frame */
 
    sc_window_gtk *w = (sc_window_gtk *)w_;
-   GdkPixmap *buffer;
-   GdkGC *gc;
+   cairo_t *cr;
    int boundx1;
    int boundy1;
    int boundx2;
@@ -229,15 +230,17 @@ void sc_window_draw_napalm_frame(sc_window *w_, const int *xlist,
    boundy2 = 0;
 
    height = w->c->fieldheight;
-   buffer = sc_display_get_buffer(SC_DISPLAY(w->screen));
-   gc = sc_display_get_gc(SC_DISPLAY(w->screen));
-   gdk_gc_set_foreground(gc, &w->colormap->napalm);
+   cr = sc_display_get_cr(SC_DISPLAY(w->screen));
+   cairo_set_source_rgb(cr, w->colormap->napalm.red/65535.0,
+                            w->colormap->napalm.green/65535.0,
+                            w->colormap->napalm.blue/65535.0);
 
    while(size > 0) {
       x = *xlist;
       y = *ylist;
       if(sc_land_translate_xy(w->c->land, &x, &y)) {
-         gdk_draw_point(buffer, gc, x, height - y - 1);
+         cairo_rectangle(cr, x, height - y - 1, 1, 1);
+         cairo_fill(cr);
          if(*xlist < boundx1) boundx1 = x;
          if(*xlist > boundx2) boundx2 = x;
          if(*ylist < boundy1) boundy1 = y;

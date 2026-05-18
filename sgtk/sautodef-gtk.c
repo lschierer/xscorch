@@ -142,7 +142,7 @@ void _sc_auto_def_gtk_free(sc_auto_def_gtk **adg) {
 
 
 
-inline void _sc_window_auto_def_engage(sc_auto_def_gtk *adg) {
+static inline void _sc_window_auto_def_engage(sc_auto_def_gtk *adg) {
 /* _sc_window_auto_def_engage
    Engage the Auto Defense system with whatever settings we have. */
 
@@ -199,11 +199,11 @@ static gboolean _sc_window_auto_def_key_gtk(__libj_unused GtkWidget *widget,
    #endif /* debug */
 
    switch(key->keyval) {
-      case GDK_Return:
-      case GDK_KP_Enter:
+      case GDK_KEY_Return:
+      case GDK_KEY_KP_Enter:
          /* Push out the settings the user gave us. */
          _sc_window_auto_def_engage(adg);
-      case GDK_Escape:
+      case GDK_KEY_Escape:
          /* Destroy the display and restart the auto defense player loop. */
          sc_display_console_detach_all(SC_DISPLAY(w->screen));
          sc_game_set_state_now(w->c, w->c->game, SC_STATE_AUTO_DEFENSE_LOOP);

@@ -27,7 +27,6 @@
 
 #include <sgtk.h>
 #include <gtk/gtk.h>
-#include <gtk/gtkwindow.h>
 
 
 /* Dialog string buffer size */
@@ -89,8 +88,8 @@ void sc_dialog_grid_attach_label(ScDialog *dlg, const char *msg, int row, int co
 void sc_dialog_message(const char *title, const char *msgtext);
 gboolean sc_dialog_query(const char *title, const char *msgtext);
 void sc_dialog_error(const char *msgappend);
-void sc_dialog_text(const char *filename, GdkFont *normal_font, GdkFont *italic_font, GdkFont *bold_font);
-void sc_dialog_text_buffer(const char *title, const char *buffer, GdkFont *normal_font, GdkFont *italic_font, GdkFont *bold_font);
+void sc_dialog_text(const char *filename, PangoFontDescription *normal_font, PangoFontDescription *italic_font, PangoFontDescription *bold_font);
+void sc_dialog_text_buffer(const char *title, const char *buffer, PangoFontDescription *normal_font, PangoFontDescription *italic_font, PangoFontDescription *bold_font);
 
 
 #endif /* __sdialog_h_included */

@@ -58,7 +58,7 @@ static void _sc_fontsel_apply_gtk(__libj_unused ScDialog *dlg, sc_fontsel_data_g
 
    char *font;
 
-   font = gtk_font_selection_get_font_name(GTK_FONT_SELECTION(setup->fontsel));
+   font = gtk_font_chooser_get_font(GTK_FONT_CHOOSER(setup->fontsel));
    sc_link_entry_set_text(SC_LINK_ENTRY(setup->entry), font);
 
 }
@@ -78,9 +78,9 @@ static void _sc_fontsel_gtk(const char *title, GtkWidget *entry) {
    g_signal_connect(G_OBJECT(dialog), "apply",
                     (GCallback)_sc_fontsel_apply_gtk, &setup);
 
-   setup.fontsel = gtk_font_selection_new();
+   setup.fontsel = gtk_font_chooser_widget_new();
    sc_dialog_grid_attach(dialog, setup.fontsel, 0, 0);
-   gtk_font_selection_set_font_name(GTK_FONT_SELECTION(setup.fontsel), font);
+   gtk_font_chooser_set_font(GTK_FONT_CHOOSER(setup.fontsel), font);
 
    /* GTK 2.0 has NO font filter abilities.  Numerous (user list) requests to
       revive this functionality appear to have gone completely unanswered.

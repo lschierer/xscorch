@@ -1,19 +1,19 @@
 /* $Header: /fridge/cvs/xscorch/sgtk/spaint-gtk.c,v 1.18 2011-04-15 06:04:25 jacob Exp $ */
 /*
-   
+
    xscorch - spain-gtk.c      Copyright(c) 2000-2003 Justin David Smith
    justins(at)chaos2.org      http://chaos2.org/
-    
+
    Window painting code for scorch
-    
 
-   This program is free software; you can redistribute it and/or modify 
-   it under the terms of the GNU General Public License as published by 
-   the Free Software Foundation, version 2 of the License ONLY. 
 
-   This program is distributed in the hope that it will be useful, 
+   This program is free software; you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation, version 2 of the License ONLY.
+
+   This program is distributed in the hope that it will be useful,
    but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU 
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
    General Public License for more details.
 
    You should have received a copy of the GNU General Public License along
@@ -24,6 +24,8 @@
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
+
+#include <cairo/cairo.h>
 
 #include <sgtk.h>
 #include <sconsole.h>
@@ -52,6 +54,13 @@
 
 
 
+/* Helper: set cairo source color from a GdkColor (16-bit fields). */
+static inline void _set_color(cairo_t *cr, const GdkColor *c) {
+   cairo_set_source_rgb(cr, c->red / 65535.0, c->green / 65535.0, c->blue / 65535.0);
+}
+
+
+
 static inline bool _sc_lines_overlap_gtk(int a1, int a2, int b1, int b2) {
 /* sc_lines_overlap_gtk */
 
@@ -67,14 +76,14 @@ static inline bool _sc_rects_overlap_gtk(int ax1, int ay1, int ax2, int ay2,
 /* sc_rects_overlap_gtk */
 
    /* Check if rectangle A overlaps any part of rectanble B. */
-   return(_sc_lines_overlap_gtk(ax1, ax2, bx1, bx2) && 
+   return(_sc_lines_overlap_gtk(ax1, ax2, bx1, bx2) &&
           _sc_lines_overlap_gtk(ay1, ay2, by1, by2));
 
 }
 
 
 
-static void _sc_window_draw_arrow(GdkPixmap *buffer, GdkGC *gc, int x, int y,
+static void _sc_window_draw_arrow(cairo_t *cr, int x, int y,
                                   int size, bool right) {
 /* sc_window_draw_arrow
    Draws an arrow on the screen whose RIGHT coordinate of the mainline
@@ -83,36 +92,44 @@ static void _sc_window_draw_arrow(GdkPixmap *buffer, GdkGC *gc, int x, int y,
    side of the arrow.  The coordinates MUST be real coordinates.  */
 
    /* Draw the arrow mainline */
-   gdk_draw_line(buffer, gc, x, y, x - size, y);
+   cairo_move_to(cr, x + 0.5, y + 0.5);
+   cairo_line_to(cr, x - size + 0.5, y + 0.5);
+   cairo_stroke(cr);
 
    /* Draw the arrow cap */
    if(right) {
-      gdk_draw_line(buffer, gc, x, y,
-                    x - SC_WIND_ARROW_SIZE, y - SC_WIND_ARROW_SIZE);
-      gdk_draw_line(buffer, gc, x, y,
-                    x - SC_WIND_ARROW_SIZE, y + SC_WIND_ARROW_SIZE);
+      cairo_move_to(cr, x + 0.5, y + 0.5);
+      cairo_line_to(cr, x - SC_WIND_ARROW_SIZE + 0.5, y - SC_WIND_ARROW_SIZE + 0.5);
+      cairo_stroke(cr);
+      cairo_move_to(cr, x + 0.5, y + 0.5);
+      cairo_line_to(cr, x - SC_WIND_ARROW_SIZE + 0.5, y + SC_WIND_ARROW_SIZE + 0.5);
+      cairo_stroke(cr);
    } else {
-      gdk_draw_line(buffer, gc, x - size, y, 
-                    x - size + SC_WIND_ARROW_SIZE, y - SC_WIND_ARROW_SIZE);
-      gdk_draw_line(buffer, gc, x - size, y, 
-                    x - size + SC_WIND_ARROW_SIZE, y + SC_WIND_ARROW_SIZE);
+      cairo_move_to(cr, x - size + 0.5, y + 0.5);
+      cairo_line_to(cr, x - size + SC_WIND_ARROW_SIZE + 0.5, y - SC_WIND_ARROW_SIZE + 0.5);
+      cairo_stroke(cr);
+      cairo_move_to(cr, x - size + 0.5, y + 0.5);
+      cairo_line_to(cr, x - size + SC_WIND_ARROW_SIZE + 0.5, y + SC_WIND_ARROW_SIZE + 0.5);
+      cairo_stroke(cr);
    }
 
 }
 
 
 
-static void _sc_window_draw_x(GdkPixmap *buffer, GdkGC *gc, int x, int y) {
+static void _sc_window_draw_x(cairo_t *cr, int x, int y) {
 /* sc_window_draw_x
    Used by arrow drawing code to draw an X whose right-center coordinate
    is at (x, y) -- this is used to indicate no wind is present.  The
    coordinates MUST be real coordiantes.  */
 
    /* Draw the X */
-   gdk_draw_line(buffer, gc, x, y + SC_WIND_ARROW_SIZE,
-                 x - SC_WIND_ARROW_SIZE - SC_WIND_ARROW_SIZE, y - SC_WIND_ARROW_SIZE);
-   gdk_draw_line(buffer, gc, x, y - SC_WIND_ARROW_SIZE,
-                 x - SC_WIND_ARROW_SIZE - SC_WIND_ARROW_SIZE, y + SC_WIND_ARROW_SIZE);
+   cairo_move_to(cr, x + 0.5, y + SC_WIND_ARROW_SIZE + 0.5);
+   cairo_line_to(cr, x - SC_WIND_ARROW_SIZE - SC_WIND_ARROW_SIZE + 0.5, y - SC_WIND_ARROW_SIZE + 0.5);
+   cairo_stroke(cr);
+   cairo_move_to(cr, x + 0.5, y - SC_WIND_ARROW_SIZE + 0.5);
+   cairo_line_to(cr, x - SC_WIND_ARROW_SIZE - SC_WIND_ARROW_SIZE + 0.5, y + SC_WIND_ARROW_SIZE + 0.5);
+   cairo_stroke(cr);
 
 }
 
@@ -124,15 +141,13 @@ static void _sc_window_draw_wind_arrow(sc_window_gtk *w, bool drawing) {
    drawing is set, we will draw an arrow; otherwise we will erase the
    last arrow that was drawn to the screen.  */
 
-   GdkPixmap *buffer;         /* Screen buffer */
-   GdkGC *gc;                 /* Screen gc */
+   cairo_t *cr;               /* Screen cairo context */
    int size;                  /* Size of wind arrow */
    int x;                     /* Anchor X (screen coords) */
    int y;                     /* Anchor Y (screen coords) */
 
-   /* Get the buffer and GC to use in drawing. */
-   buffer = sc_display_get_buffer(SC_DISPLAY(w->screen));   
-   gc = sc_display_get_gc(SC_DISPLAY(w->screen));
+   /* Get the cairo context to use in drawing. */
+   cr = sc_display_get_cr(SC_DISPLAY(w->screen));
 
    /* Calculate the arrow size */
    if(drawing) {
@@ -153,34 +168,34 @@ static void _sc_window_draw_wind_arrow(sc_window_gtk *w, bool drawing) {
          size = SC_WIND_ARROW_SIZE + SC_WIND_ARROW_SIZE;
 
          /* Draw the SHADOW */
-         gdk_gc_set_foreground(gc, &w->colormap->black);
-         _sc_window_draw_x(buffer, gc, x + 1, y + 1);
-         _sc_window_draw_x(buffer, gc, x + 1, y + 2);
-      
+         _set_color(cr, &w->colormap->black);
+         _sc_window_draw_x(cr, x + 1, y + 1);
+         _sc_window_draw_x(cr, x + 1, y + 2);
+
          /* Draw the arrow mainline and cap */
-         gdk_gc_set_foreground(gc, &w->colormap->windar);
-         _sc_window_draw_x(buffer, gc, x, y);
+         _set_color(cr, &w->colormap->windar);
+         _sc_window_draw_x(cr, x, y);
       } else {
          /* Draw the arrow SHADOW */
-         gdk_gc_set_foreground(gc, &w->colormap->black);
-         _sc_window_draw_arrow(buffer, gc, x + 1, y + 1, size, w->c->physics->curwind >= 0);
-         _sc_window_draw_arrow(buffer, gc, x + 1, y + 2, size, w->c->physics->curwind >= 0);
-         
+         _set_color(cr, &w->colormap->black);
+         _sc_window_draw_arrow(cr, x + 1, y + 1, size, w->c->physics->curwind >= 0);
+         _sc_window_draw_arrow(cr, x + 1, y + 2, size, w->c->physics->curwind >= 0);
+
          /* Draw the arrow mainline and cap */
-         gdk_gc_set_foreground(gc, &w->colormap->windar);
-         _sc_window_draw_arrow(buffer, gc, x, y, size, w->c->physics->curwind >= 0);
+         _set_color(cr, &w->colormap->windar);
+         _sc_window_draw_arrow(cr, x, y, size, w->c->physics->curwind >= 0);
       }
    } else {
-      /* Clearing an existing arrow */
+      /* Clearing an existing arrow: blit the corresponding region from landbuffer */
       if(size < SC_WIND_MINIMUM_ARROW) size = SC_WIND_ARROW_SIZE + SC_WIND_ARROW_SIZE;
-      gdk_draw_drawable(buffer, gc, w->landbuffer, 
-                        x - size, y - SC_WIND_ARROW_SIZE,
-                        x - size, y - SC_WIND_ARROW_SIZE,
-                        size + 3, SC_WIND_ARROW_SIZE + SC_WIND_ARROW_SIZE + 3);
+      cairo_set_source_surface(cr, w->landbuffer, 0, 0);
+      cairo_rectangle(cr, x - size, y - SC_WIND_ARROW_SIZE,
+                      size + 3, SC_WIND_ARROW_SIZE * 2 + 3);
+      cairo_fill(cr);
    } /* Drawing or clearing? */
-   
+
    /* Update the display */
-   sc_display_queue_draw(SC_DISPLAY(w->screen), 
+   sc_display_queue_draw(SC_DISPLAY(w->screen),
                          x - size, y - SC_WIND_ARROW_SIZE,
                          size + 3, SC_WIND_ARROW_SIZE + SC_WIND_ARROW_SIZE + 3);
 
@@ -193,8 +208,7 @@ static void _sc_window_draw_tank_gtk(sc_window_gtk *w, const sc_player *p) {
    Draws the player's tank to the screen, as well as any shielding which
    might currently be equipped on the player.  */
 
-   GdkPixmap *buffer;         /* Screen buffer */
-   GdkGC *gc;                 /* Screen gc */
+   cairo_t *cr;               /* Screen cairo context */
    sc_gradient_list grad;     /* Gradient for shields */
    unsigned char *data;       /* Profile data pointer */
    int radius;                /* Tank's radius */
@@ -209,16 +223,16 @@ static void _sc_window_draw_tank_gtk(sc_window_gtk *w, const sc_player *p) {
    int x;                     /* Player X (screen coords) */
    int y;                     /* Player Y (screen coords) */
 
-   /* Get the buffer and GC to use in drawing. */
-   buffer = sc_display_get_buffer(SC_DISPLAY(w->screen));   
-   gc = sc_display_get_gc(SC_DISPLAY(w->screen));
+   /* Get the cairo context to use in drawing. */
+   cr = sc_display_get_cr(SC_DISPLAY(w->screen));
+   cairo_set_line_width(cr, 1.0);
 
    /* Get current player coordinates. */
    x = p->x;
    y = w->c->fieldheight - p->y - 1;
    radius = p->tank->radius;
    size = radius + radius + 1;
-      
+
    /* Draw tank shields (if available) */
    if(p->shield != NULL) {
       /* Determine which gradient to use */
@@ -232,27 +246,33 @@ static void _sc_window_draw_tank_gtk(sc_window_gtk *w, const sc_player *p) {
 
       /* Draw the shield */
       index = w->c->colors->gradsize[grad] * p->shield->life / (p->shield->info->shield + 1);
-      gdk_gc_set_foreground(gc, &w->colormap->gradient[grad][index]);
-      gdk_draw_arc(buffer, gc, FALSE, 
-                   x - radius, y - radius, 
-                   2 * radius + 1, 2 * radius + 1, 
-                   0, 360 * 64);
+      _set_color(cr, &w->colormap->gradient[grad][index]);
+      cairo_arc(cr,
+                x - radius + (2 * radius + 1) / 2.0,
+                y - radius + (2 * radius + 1) / 2.0,
+                (2 * radius + 1) / 2.0,
+                0, 2 * M_PI);
+      cairo_stroke(cr);
       if(SC_SHIELD_IS_MEDIUM(p->shield) || SC_SHIELD_IS_STRONG(p->shield)) {
-         gdk_draw_arc(buffer, gc, FALSE, 
-                      x - radius - 1, y - radius - 1, 
-                      2 * radius + 3, 2 * radius + 3, 
-                      0, 360 * 64);
+         cairo_arc(cr,
+                   x - radius - 1 + (2 * radius + 3) / 2.0,
+                   y - radius - 1 + (2 * radius + 3) / 2.0,
+                   (2 * radius + 3) / 2.0,
+                   0, 2 * M_PI);
+         cairo_stroke(cr);
          if(SC_SHIELD_IS_STRONG(p->shield)) {
-            gdk_draw_arc(buffer, gc, FALSE, 
-                         x - radius - 2, y - radius - 2, 
-                         2 * radius + 5, 2 * radius + 5, 
-                         0, 360 * 64);
+            cairo_arc(cr,
+                      x - radius - 2 + (2 * radius + 5) / 2.0,
+                      y - radius - 2 + (2 * radius + 5) / 2.0,
+                      (2 * radius + 5) / 2.0,
+                      0, 2 * M_PI);
+            cairo_stroke(cr);
          } /* Extra shielding for strongest shields */
       } /* Extra shielding for stronger shields */
    }
 
    /* Set foreground pen color. */
-   gdk_gc_set_foreground(gc, &w->colormap->pcolors[p->index]);
+   _set_color(cr, &w->colormap->pcolors[p->index]);
 
    /* Draw tank base and body. */
    data = p->tank->data;
@@ -262,7 +282,8 @@ static void _sc_window_draw_tank_gtk(sc_window_gtk *w, const sc_player *p) {
             tx = x + cx;
             ty = y + cy;
             if(sc_land_translate_x(w->c->land, &tx)) {
-               gdk_draw_point(buffer, gc, tx, ty);
+               cairo_rectangle(cr, tx, ty, 1, 1);
+               cairo_fill(cr);
             } /* Is this coordinate on the screen? */
          } /* Is this point part of the tank? */
       } /* Iterate over X */
@@ -270,21 +291,22 @@ static void _sc_window_draw_tank_gtk(sc_window_gtk *w, const sc_player *p) {
 
    /* Draw tank's turret. */
    radius = p->tank->turretradius;
-   gdk_draw_line(buffer, gc, 
-                 x, y, 
-                 (int)(x + rint(radius * cos(p->turret * M_PI / 180))), 
-                 (int)(y - rint(radius * sin(p->turret * M_PI / 180))));
+   cairo_move_to(cr, x + 0.5, y + 0.5);
+   cairo_line_to(cr,
+                 (int)(x + rint(radius * cos(p->turret * M_PI / 180))) + 0.5,
+                 (int)(y - rint(radius * sin(p->turret * M_PI / 180))) + 0.5);
+   cairo_stroke(cr);
 
    /* Make sure all of this gets drawn. */
    tx1 = x - radius;
    tx2 = x + radius;
    if(sc_land_translate_x_range(w->c->land, &tx1, &tx2)) {
-      sc_display_queue_draw(SC_DISPLAY(w->screen), 
-                            tx1, y - radius, 
+      sc_display_queue_draw(SC_DISPLAY(w->screen),
+                            tx1, y - radius,
                             tx2 - tx1 + 1, size);
       if(sc_land_overlap_x(w->c->land, &tx1, &tx2)) {
-         sc_display_queue_draw(SC_DISPLAY(w->screen), 
-                               tx1, y - radius, 
+         sc_display_queue_draw(SC_DISPLAY(w->screen),
+                               tx1, y - radius,
                                tx2 - tx1 + 1, size);
       }
    }
@@ -333,7 +355,7 @@ static void _sc_window_draw_all_tanks_gtk(sc_window_gtk *w, int x1, int y1, int 
       } /* Is player not dead? */
       --i;
    } /* Loop through players. */
-   
+
 }
 
 
@@ -348,21 +370,20 @@ static void _sc_window_draw_land_pixmap_gtk(sc_window_gtk *w, int x1, int y1, in
    be in real coordinates.  */
 
    sc_color_gtk *colormap;    /* Colormap data */
-   GdkPixmap *buffer;         /* Land pixmap buffer */
+   cairo_t *cr;               /* Land cairo context (draws into landbuffer) */
    GdkColor *lcolor;          /* Last-used color */
    GdkColor *color;           /* Current color */
-   GdkGC *gc;                 /* Graphics context */
    const int *lpointer;       /* Pointer into land */
    int height;                /* Plotter height */
    int x;                     /* Current X (land coords) */
    int y;                     /* Current Y (land coords) */
    int y0;                    /* Y0 of the current line */
 
-   /* Get the colormap data, pixmap, and graphics context */
+   /* Get the colormap data and create a cairo context for the land buffer */
    height = w->c->fieldheight - 1;
    colormap = w->colormap;
-   buffer = w->landbuffer;
-   gc = sc_display_get_gc(SC_DISPLAY(w->screen));   
+   cr = cairo_create(w->landbuffer);
+   cairo_set_line_width(cr, 1.0);
 
    /* All points must be redrawn */
    lcolor = NULL;
@@ -371,7 +392,7 @@ static void _sc_window_draw_land_pixmap_gtk(sc_window_gtk *w, int x1, int y1, in
       lpointer = SC_LAND_XY(w->c->land, x, y1);
       lcolor = NULL;
       y0 = -1;
-      for(y = y1; y <= y2; ++y, ++lpointer) {   
+      for(y = y1; y <= y2; ++y, ++lpointer) {
          /* Iterating along the column ... */
          switch(SC_LAND_GET_TYPE(*lpointer)) {
             case SC_LAND_GROUND:
@@ -395,36 +416,40 @@ static void _sc_window_draw_land_pixmap_gtk(sc_window_gtk *w, int x1, int y1, in
          /* Only set new pen color if we actually changed pens. */
          if(color != lcolor) {
             if(y0 >= 0) {
-               gdk_gc_set_foreground(gc, lcolor);
-               gdk_draw_line(buffer, gc, x, height - y0, x, height - y + 1);
+               _set_color(cr, lcolor);
+               cairo_move_to(cr, x + 0.5, height - y0 + 0.5);
+               cairo_line_to(cr, x + 0.5, height - y + 1 + 0.5);
+               cairo_stroke(cr);
             }
             lcolor = color;
             y0 = y;
          }
          /* Draw the point. */
-         /*gdk_draw_point(buffer, gc, x, height - y);*/
+         /*cairo_rectangle(cr, x, height - y, 1, 1); cairo_fill(cr);*/
       } /* Iterating in Y ... */
       if(y0 >= 0) {
-         gdk_gc_set_foreground(gc, lcolor);
-         gdk_draw_line(buffer, gc, x, height - y0, x, height - y2);
+         _set_color(cr, lcolor);
+         cairo_move_to(cr, x + 0.5, height - y0 + 0.5);
+         cairo_line_to(cr, x + 0.5, height - y2 + 0.5);
+         cairo_stroke(cr);
       }
    } /* Iterating in X ... */
-   
+
+   cairo_destroy(cr);
+
 }
 
 
 
 static void _sc_window_draw_land_image_gtk(sc_window_gtk *w, int x1, int y1, int x2, int y2) {
 /* sc_window_draw_land_image_gtk
-   This code draws land using a GdkImage object (stored client-side).  I
-   have found for pixel-by-pixel images, it is faster to construct a client-
-   side image and send the entire image across as a single command, as
-   opposed to sending a large number of draw-pixel commands to the server. 
+   This code draws land using a cairo image surface (stored client-side).
+   For pixel-by-pixel images, it is faster to construct a client-side image
+   and composite it all at once, as opposed to issuing many small draw calls.
    Note this does have some overhead associated, and in general the classic
    pixel-by-pixel approach should be used if only a small rectangular area
    is being updated.  The bounding box MUST be in real coordinates.  */
 
-   GdkImage *image;           /* Local image to draw into */
    sc_color_gtk *colormap;    /* Colormap data */
    GdkColor *color;           /* Current color */
    const int *lpointer;       /* Pointer into land */
@@ -433,16 +458,20 @@ static void _sc_window_draw_land_image_gtk(sc_window_gtk *w, int x1, int y1, int
    int width;                 /* Image width */
    int x;                     /* Current X offset (land coords) */
    int y;                     /* Current Y offset (land coords) */
-   
-   /* Get the colormap data, pixmap, and graphics context */
+
+   /* Get the colormap data */
    fheight = w->c->fieldheight - 1;
    colormap = w->colormap;
-   
-   /* Create the local image to draw into */
-   height= y2 - y1 + 1;
-   width = x2 - x1 + 1;
-   image = gdk_image_new(GDK_IMAGE_FASTEST, gtk_widget_get_visual(w->app), width, height);
-   if(image == NULL) return;
+
+   /* Create the local cairo image surface to draw into */
+   height = y2 - y1 + 1;
+   width  = x2 - x1 + 1;
+   cairo_surface_t *img = cairo_image_surface_create(CAIRO_FORMAT_RGB24, width, height);
+   if(img == NULL) return;
+
+   cairo_surface_flush(img);
+   unsigned char *data   = cairo_image_surface_get_data(img);
+   int            stride = cairo_image_surface_get_stride(img);
 
    /* All points must be redrawn */
    for(x = 0; x < width; ++x) {
@@ -469,16 +498,28 @@ static void _sc_window_draw_land_image_gtk(sc_window_gtk *w, int x1, int y1, int
             default:
                color = &colormap->black;
          } /* What type of land? */
-         /* Draw the point. */
-         gdk_image_put_pixel(image, x, height - y - 1, color->pixel);
+         /* Write the pixel into the image surface (image row 0 = top of image).
+            Land y=0 is the bottom of the field; screen row 0 is the top.
+            height-y-1 maps land y to the correct image row. */
+         {
+            guint8 r8 = color->red   >> 8;
+            guint8 g8 = color->green >> 8;
+            guint8 b8 = color->blue  >> 8;
+            guint32 *row = (guint32 *)(data + (height - y - 1) * stride);
+            row[x] = ((guint32)r8 << 16) | ((guint32)g8 << 8) | (guint32)b8;
+         }
       } /* Iterating in Y ... */
    } /* Iterating in X ... */
 
-   /* Copy local image to the offscreen pixmap */
-   gdk_draw_image(w->landbuffer, sc_display_get_gc(SC_DISPLAY(w->screen)), image, 
-                  0, 0, x1, fheight - y2, width, height);
-   g_object_unref(image);
-   
+   cairo_surface_mark_dirty(img);
+
+   /* Copy local image to the offscreen land surface */
+   cairo_t *land_cr = cairo_create(w->landbuffer);
+   cairo_set_source_surface(land_cr, img, x1, fheight - y2);
+   cairo_paint(land_cr);
+   cairo_destroy(land_cr);
+   cairo_surface_destroy(img);
+
 }
 
 
@@ -497,12 +538,12 @@ static inline void _sc_window_draw_land_gtk(sc_window_gtk *w, int x1, int y1, in
    if(y2 >= w->c->fieldheight) y2 = w->c->fieldheight- 1;
 
    /* Which subfunction to use? */
-   if((y2 - y1) * (x2 - x1) <= USE_PIXMAP_MAX_AREA) { 
+   if((y2 - y1) * (x2 - x1) <= USE_PIXMAP_MAX_AREA) {
       _sc_window_draw_land_pixmap_gtk(w, x1, y1, x2, y2);
    } else {
       _sc_window_draw_land_image_gtk(w, x1, y1, x2, y2);
    }
-   
+
 }
 
 
@@ -516,13 +557,14 @@ void sc_window_paint(sc_window *w_, int x1, int y1, int x2, int y2, int flags) {
    avoided when the land hasn't been physically altered.  */
 
    sc_window_gtk *w = (sc_window_gtk *)w_;/* Window structure */
+   cairo_t *cr;                /* Screen cairo context */
    int ox1;                   /* Overlap X1 */
    int ox2;                   /* Overlap X2 */
    int screenx;               /* Screen top-left X */
    int screeny;               /* Screen top-left Y */
    int screenw;               /* Width of area being redrawn */
    int screenh;               /* Height of area being redrawn */
-   
+
    /* Swap boundaries if they are reversed. */
    if(x1 > x2) {
       x1 = x1 + x2;
@@ -537,21 +579,21 @@ void sc_window_paint(sc_window *w_, int x1, int y1, int x2, int y2, int flags) {
 
    /* Correct X bounds */
    if(!sc_land_translate_x_range(w->c->land, &x1, &x2)) return;
-   
+
    /* Check for overlap */
    ox1 = x1;
    ox2 = x2;
    if(sc_land_overlap_x(w->c->land, &ox1, &ox2)) {
       sc_window_paint(w_, ox1, y1, ox2, y2, flags);
    }
-    
+
    /* Determine the screen boundaries. */
    screenx = x1;
    screeny = w->c->fieldheight - y2 - 1;
    screenw = x2 - x1 + 1;
    screenh = y2 - y1 + 1;
 
-   /* Regeneration of land pixmap */
+   /* Regeneration of land surface */
    if(flags & SC_REGENERATE_LAND) {
       _sc_window_draw_land_gtk(w, x1, y1, x2, y2);
    } /* Regenerate the land? */
@@ -561,12 +603,14 @@ void sc_window_paint(sc_window *w_, int x1, int y1, int x2, int y2, int flags) {
       _sc_window_draw_wind_arrow(w, false);
    } /* Undraw wind arrow from screen? */
 
-   /* Copy current land pixmap to screen. */
+   /* Copy current land surface to screen buffer. */
    if(flags & SC_REDRAW_LAND) {
-      gdk_draw_drawable(sc_display_get_buffer(SC_DISPLAY(w->screen)), 
-                        sc_display_get_gc(SC_DISPLAY(w->screen)),
-                        w->landbuffer, 
-                        screenx, screeny, screenx, screeny, screenw, screenh);
+      cr = sc_display_get_cr(SC_DISPLAY(w->screen));
+      cairo_save(cr);
+      cairo_set_source_surface(cr, w->landbuffer, 0, 0);
+      cairo_rectangle(cr, screenx, screeny, screenw, screenh);
+      cairo_fill(cr);
+      cairo_restore(cr);
       sc_display_queue_draw(SC_DISPLAY(w->screen), screenx, screeny, screenw, screenh);
    } /* Copy land to screen? */
 
@@ -589,57 +633,38 @@ void sc_window_paint_circular(sc_window *w_, int centerx, int centery, int rad, 
    Like the above function, but this updates a circular region of the
    physical display (it will still update a rectangular region of the
    INTERNAL data structures, however).  (centerx, centery) are specified
-   in the usual virtual coordinates. 
-   
+   in the usual virtual coordinates.
+
    It is NOT advised that you call this during a SC_REGENERATE_LAND. */
-   
+
    /* TEMP:  I don't play the wraparound game, yet. */
    /* TEMP:  I don't play with wind arrows yet. */
 
-   GdkGC *gc = NULL;
-   GdkGC *displaygc;
-   GdkPixmap *mask = NULL;
-   GdkColor black = { 0, 0x0000, 0x0000, 0x0000 };
-   GdkColor white = { 1, 0xffff, 0xffff, 0xffff };
    sc_window_gtk *w = (sc_window_gtk *)w_;/* Window structure */
-   int size;
    int minx;
    int miny;
-   
+   int rad_px;
+
    /* Make sure radius is sane. */
    if(rad < 0) return;
-   
-   /* Construct the clipping mask.  This code is modelled from the code in
-      sc_expl_cache_draw().  In fact, it pretty much is the same code... */
-
-   /* Get the display GC */
-   displaygc = sc_display_get_gc(SC_DISPLAY(w->screen));
 
    /* Calculate the screen center coordinates */
-   size = rad + rad + 1;
-   minx = centerx - rad;
-   miny = (w->c->fieldheight - centery - 1) - rad;
-   
-   /* Create a new temporary mask */
-   mask   = gdk_pixmap_new(NULL, size, size, 1);
-   if(mask != NULL) gc = gdk_gc_new(mask);
-   if(mask != NULL && gc != NULL) {
-      gdk_gc_set_foreground(gc, &black);
-      gdk_draw_rectangle(mask, gc, TRUE, 0, 0, size, size);
-      gdk_gc_set_foreground(gc, &white);
-      gdk_draw_arc(mask, gc, TRUE, 0, 0, size, size, 0, 360 * 64);
-      gdk_gc_set_clip_mask(displaygc, mask);
-      gdk_gc_set_clip_origin(displaygc, minx, miny);
-   }
+   minx   = centerx - rad;
+   miny   = (w->c->fieldheight - centery - 1) - rad;
+   rad_px = rad;
+
+   /* Install a circular cairo clip path on the screen context */
+   cairo_t *cr = sc_display_get_cr(SC_DISPLAY(w->screen));
+   cairo_save(cr);
+   cairo_arc(cr, minx + rad_px + 0.5, miny + rad_px + 0.5, rad_px, 0, 2 * M_PI);
+   cairo_clip(cr);
 
    /* Call the main painter */
    sc_window_paint(w_, centerx - rad, centery - rad, centerx + rad, centery + rad, flags);
-   
-   /* Uninstall the clipping mask */
-   gdk_gc_set_clip_mask(displaygc, NULL);
-   if(mask != NULL) g_object_unref(mask);
-   if(gc != NULL) g_object_unref(gc);
-   
+
+   /* Uninstall the clipping path */
+   cairo_restore(cr);
+
 }
 
 
@@ -703,21 +728,20 @@ void sc_window_draw_weapon(sc_window *w_, const sc_weapon *wp) {
 
    sc_window_gtk *w = (sc_window_gtk *)w_;
    int size = w->c->weapons->bombiconsize;
-   GdkPixmap *buffer;
-   GdkGC *gc;
+   cairo_t *cr;
    int x;
    int y;
-   
+
    x = rint(wp->tr->curx) - (size >> 1);
    y = rint(wp->tr->cury) - (size >> 1);
    if(!sc_land_translate_xy(w->c->land, &x, &y)) return;
    x = x;
    y = w->c->fieldheight - y - 1;
 
-   buffer = sc_display_get_buffer(SC_DISPLAY(w->screen));   
-   gc = sc_display_get_gc(SC_DISPLAY(w->screen));
-   gdk_gc_set_foreground(gc, &w->colormap->white);
-   gdk_draw_rectangle(buffer, gc, TRUE, x, y, size, size);
+   cr = sc_display_get_cr(SC_DISPLAY(w->screen));
+   _set_color(cr, &w->colormap->white);
+   cairo_rectangle(cr, x, y, size, size);
+   cairo_fill(cr);
    sc_display_queue_draw(SC_DISPLAY(w->screen), x, y, size, size);
 
 }
@@ -729,17 +753,14 @@ void sc_window_paint_blank(sc_window *w_) {
    Erase the entire screen and fill it in with black.  */
 
    sc_window_gtk *w = (sc_window_gtk *)w_;
+   cairo_t *cr = sc_display_get_cr(SC_DISPLAY(w->screen));
+   int width  = gtk_widget_get_allocated_width(w->screen);
+   int height = gtk_widget_get_allocated_height(w->screen);
 
-   gdk_gc_set_foreground(sc_display_get_gc(SC_DISPLAY(w->screen)),
-                         &w->colormap->black);
-   gdk_draw_rectangle(sc_display_get_buffer(SC_DISPLAY(w->screen)),
-                      sc_display_get_gc(SC_DISPLAY(w->screen)),
-                      TRUE,
-                      0, 0,
-                      w->screen->allocation.width, w->screen->allocation.height);
-   sc_display_queue_draw(SC_DISPLAY(w->screen),
-                         0, 0,
-                         w->screen->allocation.width, w->screen->allocation.height);
+   _set_color(cr, &w->colormap->black);
+   cairo_rectangle(cr, 0, 0, width, height);
+   cairo_fill(cr);
+   sc_display_queue_draw(SC_DISPLAY(w->screen), 0, 0, width, height);
 
 }
 
@@ -749,8 +770,7 @@ static sc_trajectory_result _sc_window_draw_arc_gtk(sc_config *c, sc_trajectory 
 /* sc_window_draw_arc_gtk */
 
    sc_window_gtk *w = (sc_window_gtk *)data;
-   GdkPixmap *buffer;
-   GdkGC *gc;
+   cairo_t *cr;
    int x;
    int y;
 
@@ -759,11 +779,11 @@ static sc_trajectory_result _sc_window_draw_arc_gtk(sc_config *c, sc_trajectory 
    if(!sc_land_translate_xy(w->c->land, &x, &y)) {
       return(SC_TRAJ_CONTINUE);
    }
-   
-   buffer = sc_display_get_buffer(SC_DISPLAY(w->screen));   
-   gc = sc_display_get_gc(SC_DISPLAY(w->screen));
-   gdk_gc_set_foreground(gc, &w->colormap->pcolors[tr->victim]);
-   gdk_draw_rectangle(buffer, gc, TRUE, x, c->fieldheight - y - 1, 1, 1);
+
+   cr = sc_display_get_cr(SC_DISPLAY(w->screen));
+   _set_color(cr, &w->colormap->pcolors[tr->victim]);
+   cairo_rectangle(cr, x, c->fieldheight - y - 1, 1, 1);
+   cairo_fill(cr);
    sc_display_queue_draw(SC_DISPLAY(w->screen), x, c->fieldheight - y - 1, 1, 1);
    return(SC_TRAJ_CONTINUE);
 

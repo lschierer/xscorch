@@ -75,7 +75,7 @@ void sc_game_free(sc_game **g) {
 
 
 
-inline void sc_game_time(struct timeval *gametime) {
+void sc_game_time(struct timeval *gametime) {
 
    gettimeofday(gametime, NULL);
 
@@ -83,7 +83,7 @@ inline void sc_game_time(struct timeval *gametime) {
 
 
 
-inline void sc_game_reinstate(sc_game *g, unsigned long delay) {
+void sc_game_reinstate(sc_game *g, unsigned long delay) {
 
    #if SC_STATE_TIMER_DEBUG
       struct timeval curtime;
@@ -106,7 +106,7 @@ inline void sc_game_reinstate(sc_game *g, unsigned long delay) {
 
 
 
-inline void sc_game_reinstate_now(sc_config *c, sc_game *g) {
+void sc_game_reinstate_now(sc_config *c, sc_game *g) {
 
    sc_game_time(&g->timeout);
 
@@ -121,7 +121,7 @@ inline void sc_game_reinstate_now(sc_config *c, sc_game *g) {
 
 
 
-inline void sc_game_reinstate_asap(sc_game *g) {
+void sc_game_reinstate_asap(sc_game *g) {
 
    sc_game_time(&g->timeout);
 
@@ -134,7 +134,7 @@ inline void sc_game_reinstate_asap(sc_game *g) {
 
 
 
-inline void sc_game_reinstate_allow_now(sc_config *c, sc_game *g, unsigned long delay) {
+void sc_game_reinstate_allow_now(sc_config *c, sc_game *g, unsigned long delay) {
 
    if(delay <= 0) sc_game_reinstate_now(c, g);
    else sc_game_reinstate(g, delay);
@@ -143,7 +143,7 @@ inline void sc_game_reinstate_allow_now(sc_config *c, sc_game *g, unsigned long 
 
 
 
-inline void sc_game_set_state(sc_game *g, int state, unsigned long delay) {
+void sc_game_set_state(sc_game *g, int state, unsigned long delay) {
 
    g->state    = state;
    sc_game_reinstate(g, delay);
@@ -152,7 +152,7 @@ inline void sc_game_set_state(sc_game *g, int state, unsigned long delay) {
 
 
 
-inline void sc_game_set_state_now(sc_config *c, sc_game *g, int state) {
+void sc_game_set_state_now(sc_config *c, sc_game *g, int state) {
 
    g->state    = state;
    sc_game_reinstate_now(c, g);
@@ -161,7 +161,7 @@ inline void sc_game_set_state_now(sc_config *c, sc_game *g, int state) {
 
 
 
-inline void sc_game_set_state_asap(sc_game *g, int state) {
+void sc_game_set_state_asap(sc_game *g, int state) {
 /* sc_game_set_state_asap
    API calls which want to start the state machine up again on next timer
    should call this, rather than sc_game_set_state_now; otherwise the
@@ -178,7 +178,7 @@ inline void sc_game_set_state_asap(sc_game *g, int state) {
 
 
 
-inline void sc_game_set_state_allow_now(sc_config *c, sc_game *g, int state, unsigned long delay) {
+void sc_game_set_state_allow_now(sc_config *c, sc_game *g, int state, unsigned long delay) {
 
    if(delay <= 0) sc_game_set_state_now(c, g, state);
    else sc_game_set_state(g, state, delay);
@@ -187,7 +187,7 @@ inline void sc_game_set_state_allow_now(sc_config *c, sc_game *g, int state, uns
 
 
 
-inline void sc_game_sync_timeout(sc_game *g) {
+void sc_game_sync_timeout(sc_game *g) {
 
    sc_game_time(&g->timeout);
 

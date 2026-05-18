@@ -86,7 +86,7 @@ static void _sc_graphics_setup_apply_gtk(__libj_unused ScDialog *dlg,
       /* Attempt to rebuild land */   
       sc_land_generate(c, c->land);
       sc_window_paint(c->window, 0, 0, c->land->width, c->land->height, SC_REGENERATE_LAND | SC_REDRAW_LAND);
-      sc_pixmap_copy_gtk(sc_display_get_buffer(SC_DISPLAY(w->screen)), sc_display_get_gc(SC_DISPLAY(w->screen)), w->logo, w->logo_m, c->land->width - sc_pixmap_width_gtk(w->logo), c->land->height - sc_pixmap_height_gtk(w->logo));
+      sc_pixmap_copy_gtk(sc_display_get_buffer(SC_DISPLAY(w->screen)), sc_display_get_cr(SC_DISPLAY(w->screen)), w->logo, c->land->width - sc_pixmap_width_gtk(w->logo), c->land->height - sc_pixmap_height_gtk(w->logo));
    } /* Screen size was changed? */
    
    #if USE_NETWORK

@@ -123,8 +123,8 @@ typedef struct _ScConsoleHighlight {
 typedef struct _ScConsole {
    ScDrawbuf draw_buffer;        /* Parent is a drawing buf */
    ScConsoleColors colors;       /* Colors for this console */
-   GdkFont *screen_font;         /* Font used in this console */
-   GdkFont *screen_bold_font;    /* Bold font that is used */
+   PangoFontDescription *screen_font;      /* Font used in this console */
+   PangoFontDescription *screen_bold_font; /* Bold font that is used */
    GtkAllocation req_alloc;      /* Req. pos/size allocation */
 
    ScConsoleText text;           /* Data for the console text */
@@ -145,12 +145,12 @@ typedef struct _ScConsoleClass {
 /* Console initialisation */
 GType sc_console_get_type(void);
 GtkWidget *sc_console_new(gint x, gint y, gint width, gint height, ScConsoleStyle style,
-                          GdkFont *font, GdkFont *boldfont);
+                          PangoFontDescription *font, PangoFontDescription *boldfont);
 
 
 /* Console modification */
 void sc_console_init(ScConsole *cons, gint x, gint y, gint width, gint height, ScConsoleStyle style,
-                     GdkFont *font, GdkFont *boldfont);
+                     PangoFontDescription *font, PangoFontDescription *boldfont);
 void sc_console_buffer_size(ScConsole *cons, gint width, gint height);
 
 
@@ -165,7 +165,7 @@ void sc_console_clear(ScConsole *cons);
 /* Setup colors and highlights */
 #define sc_console_get_foreground(cons)      (&(cons)->colors.foreground)
 #define sc_console_get_background(cons)      (&(cons)->colors.background)
-void sc_console_set_fonts(ScConsole *cons, GdkFont *font, GdkFont *boldfont);
+void sc_console_set_fonts(ScConsole *cons, PangoFontDescription *font, PangoFontDescription *boldfont);
 void sc_console_set_colors(ScConsole *cons, GdkColor *fg, GdkColor *bg);
 #define sc_console_set_foreground(cons, fg)  sc_console_set_colors(cons, fg, NULL)
 #define sc_console_set_background(cons, bg)  sc_console_set_colors(cons, NULL, bg)
